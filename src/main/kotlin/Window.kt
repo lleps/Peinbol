@@ -64,7 +64,7 @@ class Window(val width: Int = 640, val height: Int = 480) {
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(30.toFloat().toDouble(), (width / height).toDouble(), 0.001, 100.0)
+        gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 100.0)
         glMatrixMode(GL_MODELVIEW)
         glEnable(GL_DEPTH_TEST)
     }
