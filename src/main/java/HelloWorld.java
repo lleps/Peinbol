@@ -84,28 +84,63 @@ public class HelloWorld {
     }
 
     private void loop() {
-        // This line is critical for LWJGL's interoperation with GLFW's
-        // OpenGL context, or any context that is managed externally.
-        // LWJGL detects the context that is current in the current thread,
-        // creates the GLCapabilities instance and makes the OpenGL
-        // bindings available for use.
-        GL.createCapabilities();
+        long fpsCount = 0;
+        long countFpsExpiry = System.currentTimeMillis() + 1000;
 
-        // Set the clear color
+        float cameraPosX = 0;
+        float cameraPosY = 0;
+        float cameraPosZ = 0;
+
+        float cameraRotX = 0;
+        float cameraRotY = 0;
+        float cameraRotZ = 0;
+
+        GL.createCapabilities();
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 
-        // Run the rendering loop until the user has attempted to close
-        // the window or has pressed the ESCAPE key.
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluPerspective((float) 30, 300f / 300f, 0.001f, 100);
+        glMatrixMode(GL_MODELVIEW);
+        glEnable(GL_DEPTH_TEST);
+
         while ( !glfwWindowShouldClose(window) ) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
-            // dibujar el cuadrado. el viewport va desde (-1,-1) hasta (1,1) en coordenadas
-            glColor3d(0.4, 0.1, 0.0); // el color va en red, green, blue. Entre 0 y 1
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                cameraPosX += 0.1f;
+            } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                cameraPosX -= 0.1f;
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                cameraPosZ -= 0.1f;
+            } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                cameraPosZ += 0.1f;
+            }
+
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+                cameraRotX += 10f;
+            } else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+                cameraRotX -= 10f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+                cameraRotY += 10f;
+            } else if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+                cameraRotY -= 10f;
+            }
+
+            glLoadIdentity();
+            glRotatef(-cameraRotX, 1, 0, 0);
+            glRotatef(-cameraRotY, 0, 1, 0);
+            glRotatef(-cameraRotZ, 0, 0, 1);
+            glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ);
+            glColor3d(0.4, 0.1, 0.0);
             glBegin(GL_QUADS);
-            glVertex2d(0.0, 0.0);
-            glVertex2d(0.0, 1.0);
-            glVertex2d(1.0, 1.0);
-            glVertex2d(1.0, 0.0);
+                glVertex3d(0.0, 0.0, 0.0);
+                glVertex3d(0.0, 1.0, 0.0);
+                glVertex3d(1.0, 1.0, 0.0);
+                glVertex3d(1.0, 0.0, 0.0);
             glEnd();
 
             glfwSwapBuffers(window); // swap the color buffers
@@ -114,7 +149,22 @@ public class HelloWorld {
             // Poll for window events. The key callback above will only be
             // invoked during this call.
             glfwPollEvents();
+
+            fpsCount++;
+            if (System.currentTimeMillis() > countFpsExpiry) {
+                glfwSetWindowTitle(window, "Hello world! " + fpsCount + " FPS");
+                fpsCount = 0;
+                countFpsExpiry = System.currentTimeMillis() + 1000;
+            }
         }
+    }
+
+    private void gluPerspective(double fovY, double aspect, double zNear, double zFar) {
+        double fW, fH;
+
+        fH = Math.tan(Math.toRadians(fovY)) * zNear;
+        fW = fH * aspect;
+        glFrustum( -fW, fW, -fH, fH, zNear, zFar );
     }
 
     public static void main(String[] args) {
