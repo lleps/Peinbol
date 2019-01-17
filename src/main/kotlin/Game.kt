@@ -7,12 +7,13 @@ class Game {
     companion object {
 
         lateinit var playerBox: Box
+        lateinit var physics: Physics
 
         @JvmStatic
         fun main(args: Array<String>) {
             val window = Window()
             window.init()
-            val physics = Physics()
+            physics = Physics()
 
             // build boxes
             for (i in 0..20) {
@@ -43,7 +44,7 @@ class Game {
             physics.boxes += base
 
             // build player physic box
-            playerBox = Box(0.0,20.0,0.0,  1.0,2.0,1.0, affectedByPhysics = true)
+            playerBox = Box(0.0,20.0,0.0,  0.5,2.0,0.5, affectedByPhysics = true)
             physics.boxes += playerBox
 
             window.cameraPosX = playerBox.x
@@ -70,6 +71,8 @@ class Game {
 
         private fun randBetween(min: Int, max: Int) = min + Random().nextInt(max-min)
         private fun <T> List<T>.randomElement() = get(randBetween(0, size))
+
+        private var lastShot: Long = 0
 
         private fun updateCameraByKeys(window: Window, mouseDX: Double, mouseDY: Double) {
             println("delta: ${mouseDX} ${mouseDY}")
@@ -98,6 +101,24 @@ class Game {
                 window.cameraRotZ += 1.0
             } else if (window.isKeyPressed(GLFW_KEY_RIGHT)) {
                 window.cameraRotZ -= 1.0
+            }
+
+            if (window.isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) &&
+                (System.currentTimeMillis() - lastShot) > 500) {
+                lastShot = System.currentTimeMillis()
+                val shotSpeed = 0.3
+                val frontPos = 0.6
+                val box = Box(
+                    x = playerBox.x + -Math.sin(Math.toRadians(window.cameraRotY)) * frontPos,
+                    y = playerBox.y,
+                    z = playerBox.z + -Math.cos(Math.toRadians(window.cameraRotY)) * frontPos,
+                    sx = 0.2, sy = 0.2, sz = 0.2,
+                    vx = -Math.sin(Math.toRadians(window.cameraRotY)) * shotSpeed,
+                    vy = 0.0,
+                    vz = -Math.cos(Math.toRadians(window.cameraRotY)) * shotSpeed
+                )
+                window.boxes += box
+                physics.boxes += box
             }
         }
     }

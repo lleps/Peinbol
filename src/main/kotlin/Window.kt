@@ -178,6 +178,10 @@ class Window(val width: Int = 640, val height: Int = 480) {
         return glfwGetKey(window, key) == GLFW_PRESS
     }
 
+    fun isMouseButtonDown(button: Int): Boolean {
+        return glfwGetMouseButton(window, button) == GLFW_PRESS
+    }
+
     fun destroy() {
         glfwFreeCallbacks(window)
         glfwDestroyWindow(window)
