@@ -14,21 +14,44 @@ import org.lwjgl.system.MemoryUtil.*
 class Window(val width: Int = 640, val height: Int = 480) {
     var boxes: List<Box> = emptyList()
 
-    var cameraPosX = 0f
-    var cameraPosY = 0f
-    var cameraPosZ = 0f
+    var cameraPosX = 0.0
+    var cameraPosY = 0.0
+    var cameraPosZ = 0.0
 
-    var cameraRotX = 0f
-    var cameraRotY = 0f
-    var cameraRotZ = 0f
+    var cameraRotX = 0.0
+        set(value) {
+            field = value.coerceIn(-65.0, 65.0) % 360.0
+        }
+
+    var cameraRotY = 0.0
+        set(value) {
+            field = value % 360.0
+        }
+
+    var cameraRotZ = 0.0
+        set(value) {
+            field = value % 360.0
+        }
 
     private var window: Long = 0
 
-    init {
-        init()
-    }
+    val mouseX: Double
+        get() {
+            val buffX = doubleArrayOf(0.0)
+            val buffY = doubleArrayOf(0.0)
+            glfwGetCursorPos(window, buffX, buffY)
+            return buffX[0]
+        }
 
-    private fun init() {
+    val mouseY: Double
+        get() {
+            val buffX = doubleArrayOf(0.0)
+            val buffY = doubleArrayOf(0.0)
+            glfwGetCursorPos(window, buffX, buffY)
+            return buffY[0]
+        }
+
+    fun init() {
         GLFWErrorCallback.createPrint(System.err).set()
 
         if (!glfwInit())
@@ -42,18 +65,20 @@ class Window(val width: Int = 640, val height: Int = 480) {
         if (window == NULL)
             throw RuntimeException("Failed to create the GLFW window")
 
-        stackPush().use({ stack ->
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN)
+
+        stackPush().use { stack ->
             val pWidth = stack.mallocInt(1) // int*
             val pHeight = stack.mallocInt(1) // int*
             glfwGetWindowSize(window, pWidth, pHeight)
             val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
 
             glfwSetWindowPos(
-                    window,
-                    (vidmode.width() - pWidth.get(0)) / 2,
-                    (vidmode.height() - pHeight.get(0)) / 2
+                window,
+                (vidmode.width() - pWidth.get(0)) / 2,
+                (vidmode.height() - pHeight.get(0)) / 2
             )
-        })
+        }
 
         glfwMakeContextCurrent(window)
         glfwSwapInterval(1) // Enable v-sync
@@ -84,13 +109,14 @@ class Window(val width: Int = 640, val height: Int = 480) {
     fun draw() {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
         glLoadIdentity()
-        glRotatef(-cameraRotX, 1f, 0f, 0f)
-        glRotatef(-cameraRotY, 0f, 1f, 0f)
-        glRotatef(-cameraRotZ, 0f, 0f, 1f)
-        glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ)
-        glColor3d(0.4, 0.1, 0.0)
+        glRotated(-cameraRotX, 1.0, 0.0, 0.0)
+        glRotated(-cameraRotY, 0.0, 1.0, 0.0)
+        glRotated(-cameraRotZ, 0.0, 0.0, 1.0)
+        glTranslated(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         for (box in boxes) {
+            glColor3d(box.color.r, box.color.g, box.color.b)
+
             glPushMatrix()
             glTranslated(box.x, box.y, box.z)
             glScaled(box.sx / 2.0, box.sy / 2.0, box.sz / 2.0)
@@ -139,7 +165,10 @@ class Window(val width: Int = 640, val height: Int = 480) {
 
         fpsCount++
         if (System.currentTimeMillis() > countFpsExpiry) {
-            glfwSetWindowTitle(window, "Hello world! $fpsCount FPS")
+            glfwSetWindowTitle(window,
+                "%d FPS | pos: %.03f %.03f %.03f  cam: %.03f %.03f %.03f"
+                    .format(fpsCount, cameraPosX, cameraPosY, cameraPosZ, cameraRotX, cameraRotY, cameraRotZ)
+            )
             fpsCount = 0
             countFpsExpiry = System.currentTimeMillis() + 1000
         }
