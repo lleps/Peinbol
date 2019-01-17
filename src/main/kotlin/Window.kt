@@ -8,6 +8,7 @@ import java.nio.*
 import org.lwjgl.glfw.Callbacks.*
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL12.GL_TEXTURE_3D
 import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
@@ -51,7 +52,11 @@ class Window(val width: Int = 640, val height: Int = 480) {
             return buffY[0]
         }
 
+    val url = javaClass.classLoader.getResource("wood.png")
+    lateinit var txt: Texture
+
     fun init() {
+
         GLFWErrorCallback.createPrint(System.err).set()
 
         if (!glfwInit())
@@ -92,6 +97,10 @@ class Window(val width: Int = 640, val height: Int = 480) {
         gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 100.0)
         glMatrixMode(GL_MODELVIEW)
         glEnable(GL_DEPTH_TEST)
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        txt = Texture(url)
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -107,6 +116,17 @@ class Window(val width: Int = 640, val height: Int = 480) {
     private var countFpsExpiry = System.currentTimeMillis() + 1000
 
     fun draw() {
+        glEnable(GL_TEXTURE_2D)
+
+        txt.bind()
+
+        val u = -1f
+        val v = -1f
+        val w = -1f
+        val u2 = 1f
+        val v2 = 1f
+        val w2 = 1f
+
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
         glLoadIdentity()
         glRotated(-cameraRotX, 1.0, 0.0, 0.0)
@@ -121,41 +141,32 @@ class Window(val width: Int = 640, val height: Int = 480) {
             glTranslated(box.x, box.y, box.z)
             glScaled(box.sx / 2.0, box.sy / 2.0, box.sz / 2.0)
             glBegin(GL_QUADS)
-            // Cara de arriba
-            glVertex3d(-1.0, 1.0, 1.0)
-            glVertex3d(1.0, 1.0, 1.0)
-            glVertex3d(1.0, 1.0, -1.0)
-            glVertex3d(-1.0, 1.0, -1.0)
+            val top = 1.0
+            glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0,  1.0)
+            glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0,  1.0)
+            glTexCoord2d(top, top); glVertex3d( 1.0,  1.0,  1.0)
+            glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0,  1.0)
+            glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0, -1.0)
+            glTexCoord2d(top, top); glVertex3d(-1.0,  1.0, -1.0)
+            glTexCoord2d(0.0, top); glVertex3d( 1.0,  1.0, -1.0)
+            glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0, -1.0)
+            glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0, -1.0)
+            glTexCoord2d(0.0, 0.0); glVertex3d(-1.0,  1.0,  1.0)
+            glTexCoord2d(top, 0.0); glVertex3d( 1.0,  1.0,  1.0)
+            glTexCoord2d(top, top); glVertex3d( 1.0,  1.0, -1.0)
+            glTexCoord2d(top, top); glVertex3d(-1.0, -1.0, -1.0)
+            glTexCoord2d(0.0, top); glVertex3d( 1.0, -1.0, -1.0)
+            glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0,  1.0)
+            glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0,  1.0)
+            glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0, -1.0)
+            glTexCoord2d(top, top); glVertex3d( 1.0,  1.0, -1.0)
+            glTexCoord2d(0.0, top); glVertex3d( 1.0,  1.0,  1.0)
+            glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0,  1.0)
+            glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0, -1.0)
+            glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0,  1.0)
+            glTexCoord2d(top, top); glVertex3d(-1.0,  1.0,  1.0)
+            glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0, -1.0)
 
-            // Cara de abajo
-            glVertex3d(-1.0, -1.0, 1.0)
-            glVertex3d(1.0, -1.0, 1.0)
-            glVertex3d(1.0, -1.0, -1.0)
-            glVertex3d(-1.0, -1.0, -1.0)
-
-            // Cara frontal
-            glVertex3d(-1.0, -1.0, 1.0)
-            glVertex3d(1.0, -1.0, 1.0)
-            glVertex3d(1.0, 1.0, 1.0)
-            glVertex3d(-1.0, 1.0, 1.0)
-
-            // Cara trasera
-            glVertex3d(1.0, -1.0, -1.0)
-            glVertex3d(-1.0, -1.0, -1.0)
-            glVertex3d(-1.0, 1.0, -1.0)
-            glVertex3d(1.0, 1.0, -1.0)
-
-            // Cara izquierda
-            glVertex3d(-1.0, 1.0, 1.0)
-            glVertex3d(-1.0, 1.0, -1.0)
-            glVertex3d(-1.0, -1.0, -1.0)
-            glVertex3d(-1.0, -1.0, 1.0)
-
-            // Cara derecha
-            glVertex3d(1.0, 1.0, -1.0)
-            glVertex3d(1.0, 1.0, 1.0)
-            glVertex3d(1.0, -1.0, 1.0)
-            glVertex3d(1.0, -1.0, -1.0)
             glEnd()
             glPopMatrix()
         }
