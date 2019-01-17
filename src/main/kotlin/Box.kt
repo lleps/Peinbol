@@ -1,9 +1,10 @@
 class Box(
-    var x: Double, var y: Double, var z: Double,
-    var sx: Double, var sy: Double, var sz: Double,
+    var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0,
+    var sx: Double = 0.0, var sy: Double = 0.0, var sz: Double = 0.0,
     var vx: Double = 0.0, var vy: Double = 0.0, var vz: Double = 0.0,
     var affectedByPhysics: Boolean = true,
-    var color: Color = Color()
+    var color: Color = Color(),
+    var inGround: Boolean = false
 )
 
 class Color(val r: Double = 1.0, val g: Double = 1.0, val b: Double = 1.0, val a: Double = 1.0) {

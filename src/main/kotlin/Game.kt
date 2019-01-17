@@ -57,13 +57,12 @@ class Game {
             while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
                 val deltaMoveX = window.mouseX - lastMouseX
                 val deltaMoveY = window.mouseY - lastMouseY
-                updateCameraByKeys(window, deltaMoveX, deltaMoveY)
                 lastMouseX = window.mouseX
                 lastMouseY = window.mouseY
                 val delta = System.currentTimeMillis() - lastFrame
                 lastFrame = System.currentTimeMillis()
+                updateCameraByKeys(window, deltaMoveX, deltaMoveY, delta.toDouble())
                 physics.simulate(delta.toDouble())
-
                 window.draw()
             }
             window.destroy()
@@ -75,7 +74,10 @@ class Game {
         private var lastShot: Long = 0
         private var mouseDownMillis: Long = 0
 
-        private fun updateCameraByKeys(window: Window, mouseDX: Double, mouseDY: Double) {
+        private fun updateCameraByKeys(window: Window, mouseDX: Double, mouseDY: Double, delta: Double) {
+            val deltaSec = delta / 1000.0
+            val speed = 1.0
+
             if (window.isKeyPressed(GLFW_KEY_D)) {
                 //playerBox.x += 0.1f
             } else if (window.isKeyPressed(GLFW_KEY_A)) {
@@ -83,19 +85,25 @@ class Game {
             }
 
             if (window.isKeyPressed(GLFW_KEY_W)) {
-                playerBox.x -= Math.sin(Math.toRadians(window.cameraRotY))
-                playerBox.z -= Math.cos(Math.toRadians(window.cameraRotY))
-            } else if (window.isKeyPressed(GLFW_KEY_S)) {
-                playerBox.x += Math.sin(Math.toRadians(window.cameraRotY))
-                playerBox.z += Math.cos(Math.toRadians(window.cameraRotY))
+                playerBox.vx -= Math.sin(Math.toRadians(window.cameraRotY)) * speed * deltaSec
+                playerBox.vz -= Math.cos(Math.toRadians(window.cameraRotY)) * speed * deltaSec
+            }
+            if (window.isKeyPressed(GLFW_KEY_S)) {
+                playerBox.vx += Math.sin(Math.toRadians(window.cameraRotY)) * speed * deltaSec
+                playerBox.vz += Math.cos(Math.toRadians(window.cameraRotY)) * speed * deltaSec
+            }
+            if (window.isKeyPressed(GLFW_KEY_D)) {
+                playerBox.vx += Math.sin(Math.toRadians(window.cameraRotY + 90.0)) * speed * deltaSec
+                playerBox.vz += Math.cos(Math.toRadians(window.cameraRotY + 90.0)) * speed * deltaSec
+            }
+            if (window.isKeyPressed(GLFW_KEY_A)) {
+                playerBox.vx += Math.sin(Math.toRadians(window.cameraRotY - 90.0)) * speed * deltaSec
+                playerBox.vz += Math.cos(Math.toRadians(window.cameraRotY - 90.0)) * speed * deltaSec
             }
 
-            window.cameraPosX = playerBox.x
-            window.cameraPosY = playerBox.y
-            window.cameraPosZ = playerBox.z
-
-            window.cameraRotX -= mouseDY
-            window.cameraRotY -= mouseDX
+            if (window.isKeyPressed(GLFW_KEY_SPACE) && playerBox.inGround) {
+                playerBox.vy += 1.0
+            }
 
             if (window.isKeyPressed(GLFW_KEY_LEFT)) {
                 window.cameraRotZ += 1.0
@@ -120,6 +128,13 @@ class Game {
                 window.boxes += box
                 physics.boxes += box
             }
+
+            window.cameraPosX = playerBox.x
+            window.cameraPosY = playerBox.y + 0.8
+            window.cameraPosZ = playerBox.z
+
+            window.cameraRotX -= mouseDY
+            window.cameraRotY -= mouseDX
         }
     }
 }

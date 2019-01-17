@@ -15,6 +15,12 @@ class Physics(val gravity: Double = -9.8) {
                 b.y += b.vy
                 b.z += b.vz
 
+                // XZ friction
+                b.vx *= 0.8
+                b.vz *= 0.8
+
+                var inGround = false
+
                 // check collision
                 for (b2 in boxes) {
                     if (b2 == b) continue
@@ -31,8 +37,10 @@ class Physics(val gravity: Double = -9.8) {
                         // collide with
                         b.vy = -(b.vy * 0.5)
                         b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
+                        inGround = true
                     }
                 }
+                b.inGround = inGround
             }
         }
     }
