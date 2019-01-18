@@ -65,7 +65,7 @@ class Game {
 
             var lastFrame = System.currentTimeMillis()
             while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-                val deltaMoveX = window.mouseX - 100.0
+                val deltaMoveX = window.mouseX - 100.0 // since was centered on last frame, get how much moved since then
                 val deltaMoveY = window.mouseY - 100.0
                 val delta = System.currentTimeMillis() - lastFrame
                 lastFrame = System.currentTimeMillis()
