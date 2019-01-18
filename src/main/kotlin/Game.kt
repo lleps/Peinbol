@@ -61,18 +61,17 @@ class Game {
             window.cameraPosY = playerBox.y
             window.cameraPosZ = playerBox.z
 
+            window.centerCursor()
+
             var lastFrame = System.currentTimeMillis()
-            var lastMouseX: Double = 0.0
-            var lastMouseY: Double = 0.0
             while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-                val deltaMoveX = window.mouseX - lastMouseX
-                val deltaMoveY = window.mouseY - lastMouseY
-                lastMouseX = window.mouseX
-                lastMouseY = window.mouseY
+                val deltaMoveX = window.mouseX - 100.0
+                val deltaMoveY = window.mouseY - 100.0
                 val delta = System.currentTimeMillis() - lastFrame
                 lastFrame = System.currentTimeMillis()
                 updateCameraByKeys(window, deltaMoveX, deltaMoveY, delta.toDouble())
                 physics.simulate(delta.toDouble())
+                window.centerCursor()
                 window.draw()
             }
             window.destroy()
@@ -86,7 +85,14 @@ class Game {
 
         private fun updateCameraByKeys(window: Window, mouseDX: Double, mouseDY: Double, delta: Double) {
             val deltaSec = delta / 1000.0
-            val speed = 1.0
+            var speed = 1.5
+
+
+            if (!playerBox.inGround) speed *= 0.2
+
+            if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+                speed = 0.3
+            }
 
             if (window.isKeyPressed(GLFW_KEY_W)) {
                 playerBox.vx -= Math.sin(Math.toRadians(window.cameraRotY)) * speed * deltaSec
@@ -106,7 +112,7 @@ class Game {
             }
 
             if (window.isKeyPressed(GLFW_KEY_SPACE) && playerBox.inGround) {
-                playerBox.vy += 1.0
+                playerBox.vy += 0.3
             }
 
             if (window.isKeyPressed(GLFW_KEY_LEFT)) {
@@ -118,7 +124,7 @@ class Game {
             if (window.isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) &&
                 (System.currentTimeMillis() - lastShot) > 500) {
                 lastShot = System.currentTimeMillis()
-                val shotSpeed = 0.3
+                val shotSpeed = 1.5*0.5
                 val frontPos = 0.6
                 val box = Box(
                     x = playerBox.x + -Math.sin(Math.toRadians(window.cameraRotY)) * frontPos,
@@ -126,8 +132,22 @@ class Game {
                     z = playerBox.z + -Math.cos(Math.toRadians(window.cameraRotY)) * frontPos,
                     sx = 0.2, sy = 0.2, sz = 0.2,
                     vx = -Math.sin(Math.toRadians(window.cameraRotY)) * shotSpeed,
-                    vy = 0.0,
+                    vy = 0.3*0.5,
                     vz = -Math.cos(Math.toRadians(window.cameraRotY)) * shotSpeed
+                )
+                window.boxes += box
+                physics.boxes += box
+            }
+
+            if (window.isMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE) &&
+                (System.currentTimeMillis() - lastShot) > 500) {
+                lastShot = System.currentTimeMillis()
+                val frontPos = 1
+                val box = Box(
+                    x = playerBox.x + -Math.sin(Math.toRadians(window.cameraRotY)) * frontPos,
+                    y = playerBox.y,
+                    z = playerBox.z + -Math.cos(Math.toRadians(window.cameraRotY)) * frontPos,
+                    sx = 1.0, sy = 1.0, sz = 1.0
                 )
                 window.boxes += box
                 physics.boxes += box
@@ -137,8 +157,8 @@ class Game {
             window.cameraPosY = playerBox.y + 0.8
             window.cameraPosZ = playerBox.z
 
-            window.cameraRotX -= mouseDY
-            window.cameraRotY -= mouseDX
+            window.cameraRotX -= mouseDY * 0.4
+            window.cameraRotY -= mouseDX * 0.4
         }
     }
 }

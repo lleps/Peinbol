@@ -12,7 +12,7 @@ import org.lwjgl.opengl.GL12.GL_TEXTURE_3D
 import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
-class Window(val width: Int = 640, val height: Int = 480) {
+class Window(val width: Int = 1366, val height: Int = 768) {
     var boxes: List<Box> = emptyList()
 
     var cameraPosX = 0.0
@@ -21,7 +21,7 @@ class Window(val width: Int = 640, val height: Int = 480) {
 
     var cameraRotX = 0.0
         set(value) {
-            field = value.coerceIn(-65.0, 65.0) % 360.0
+            field = value.coerceIn(-85.0, 85.0) % 360.0
         }
 
     var cameraRotY = 0.0
@@ -63,7 +63,8 @@ class Window(val width: Int = 640, val height: Int = 480) {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE) // the window will stay hidden after creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // the window will be resizable
 
-        window = glfwCreateWindow(width, height, "Hello World!", NULL, NULL)
+
+        window = glfwCreateWindow(width, height, "Hello World!", glfwGetPrimaryMonitor(), NULL)
         if (window == NULL)
             throw RuntimeException("Failed to create the GLFW window")
 
@@ -91,12 +92,12 @@ class Window(val width: Int = 640, val height: Int = 480) {
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 100.0)
+        gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 1000.0)
         glMatrixMode(GL_MODELVIEW)
         glEnable(GL_DEPTH_TEST)
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -111,7 +112,12 @@ class Window(val width: Int = 640, val height: Int = 480) {
     private var fpsCount: Long = 0
     private var countFpsExpiry = System.currentTimeMillis() + 1000
 
+    fun centerCursor() {
+        glfwSetCursorPos(window, 100.0, 100.0)
+    }
+
     fun draw() {
+
         glEnable(GL_TEXTURE_2D)
 
         val u = -1f

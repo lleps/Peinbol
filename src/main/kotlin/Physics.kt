@@ -1,4 +1,4 @@
-class Physics(val gravity: Double = -1.8) {
+class Physics(val gravity: Double = -1.0) {
     var boxes: List<Box> = emptyList()
 
     fun simulate(delta: Double) {
@@ -17,8 +17,28 @@ class Physics(val gravity: Double = -1.8) {
                 for (b2 in boxes) {
                     if (b2 == b) continue
 
-                        if (b.y + b.vy - (b.sy/2.0) <= b2.y + (b2.sy/2.0) && // distinta
-                            b.y + (b.sy/2.0) >= b2.y + (b2.sy/2.0) &&
+                    if (b.y + b.vy - (b.sy/2.0) <= b2.y + (b2.sy/2.0) && // distinta
+                        b.y + (b.sy/2.0) >= b2.y + (b2.sy/2.0) &&
+                        // x
+                        b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
+                        b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0) &&
+                        // z
+                        b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
+                        b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
+                    ) {
+                        b.vy = -(b.vy * 0.5)
+                        if (Math.abs(b.vy) < 0.5) b.vy = 0.0
+                        b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
+                        inGround = true
+                        println("collide going -y")
+                    }
+                    // Ground
+                    if (b.vy < 0) {
+
+                    } else if (b.vy > 0) {
+                        // floor
+                        /*if (b.y - (b.sy/2.0) <= b2.y + (b2.sy/2.0) && // distinta
+                            b.y + b.vy + (b.sy/2.0) >= b2.y + (b2.sy/2.0) &&
                             // x
                             b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0) &&
@@ -29,9 +49,9 @@ class Physics(val gravity: Double = -1.8) {
                             b.vy = -(b.vy * 0.5)
                             if (Math.abs(b.vy) < 0.5) b.vy = 0.0
                             b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
-                            inGround = true
-                            println("collide going -y")
-                        }
+                            println("collide going +y")
+                        }*/
+                    }
 
                     // check if b is inside b2 (floor)
 
@@ -112,14 +132,16 @@ class Physics(val gravity: Double = -1.8) {
 
 
                 b.x += b.vx
-                b.vx *= 0.8
 
                 b.z += b.vz
-                b.vz *= 0.8
                 b.inGround = inGround
                 if (!inGround) {
                     b.vy += gravity * deltaSec
                     b.y += b.vy
+                } else {
+                    // ground friction
+                    b.vx *= 0.8
+                    b.vz *= 0.8
                 }
 
             }
