@@ -1,4 +1,3 @@
-import org.lwjgl.glfw.GLFW
 import java.util.*
 import org.lwjgl.glfw.GLFW.*
 
@@ -17,6 +16,15 @@ class Game {
 
             // build boxes
             for (i in 0..20) {
+                val randint = randBetween(0, 5)
+                var randtxt: Texture
+
+                if(randint == 0) randtxt = Textures.METAL
+                else if(randint == 1) randtxt = Textures.CLOTH
+                else if(randint == 2) randtxt = Textures.CREEPER
+                else if(randint == 3) randtxt = Textures.RUBIK
+                else randtxt = Textures.FOOTBALL
+
                 val box = Box(
                     x = randBetween(-40, 40).toDouble(),
                     y = randBetween(-5, 5).toDouble(),
@@ -25,7 +33,8 @@ class Game {
                     sy = 1.0,
                     sz = 1.0,
                     affectedByPhysics = true,
-                    color = Color.WHITE
+                    //color = Color.WHITE,
+                    txt = randtxt
                 )
                 window.boxes += box
                 physics.boxes += box
@@ -35,16 +44,17 @@ class Game {
             val base = Box(
                 x = 0.0, y = -50.0, z = 0.0,
                 sx = 100.0, sy = 1.0, sz = 100.0,
-                affectedByPhysics = false//,
-                //color = Color.GREEN
+                affectedByPhysics = false,
+                //color = Color.GREEN,
+                txt = Textures.WOOD,
+                txtMultiplier = 50.0
             )
-
 
             window.boxes += base
             physics.boxes += base
 
             // build player physic box
-            playerBox = Box(0.0,20.0,0.0,  0.5,2.0,0.5, affectedByPhysics = true)
+            playerBox = Box(0.0, 20.0, 0.0, 0.5, 2.0, 0.5, affectedByPhysics = true)
             physics.boxes += playerBox
 
             window.cameraPosX = playerBox.x
@@ -77,12 +87,6 @@ class Game {
         private fun updateCameraByKeys(window: Window, mouseDX: Double, mouseDY: Double, delta: Double) {
             val deltaSec = delta / 1000.0
             val speed = 1.0
-
-            if (window.isKeyPressed(GLFW_KEY_D)) {
-                //playerBox.x += 0.1f
-            } else if (window.isKeyPressed(GLFW_KEY_A)) {
-                //playerBox.x -= 0.1f
-            }
 
             if (window.isKeyPressed(GLFW_KEY_W)) {
                 playerBox.vx -= Math.sin(Math.toRadians(window.cameraRotY)) * speed * deltaSec

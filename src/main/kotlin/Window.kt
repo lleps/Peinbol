@@ -52,9 +52,6 @@ class Window(val width: Int = 640, val height: Int = 480) {
             return buffY[0]
         }
 
-    val url = javaClass.classLoader.getResource("wood.png")
-    lateinit var txt: Texture
-
     fun init() {
 
         GLFWErrorCallback.createPrint(System.err).set()
@@ -100,7 +97,6 @@ class Window(val width: Int = 640, val height: Int = 480) {
 
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-        txt = Texture(url)
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -118,8 +114,6 @@ class Window(val width: Int = 640, val height: Int = 480) {
     fun draw() {
         glEnable(GL_TEXTURE_2D)
 
-        txt.bind()
-
         val u = -1f
         val v = -1f
         val w = -1f
@@ -135,13 +129,15 @@ class Window(val width: Int = 640, val height: Int = 480) {
         glTranslated(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         for (box in boxes) {
+            box.txt.bind()
+
             glColor3d(box.color.r, box.color.g, box.color.b)
 
             glPushMatrix()
             glTranslated(box.x, box.y, box.z)
             glScaled(box.sx / 2.0, box.sy / 2.0, box.sz / 2.0)
             glBegin(GL_QUADS)
-            val top = 1.0
+            val top = box.txtMultiplier
             glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0,  1.0)
             glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0,  1.0)
             glTexCoord2d(top, top); glVertex3d( 1.0,  1.0,  1.0)
