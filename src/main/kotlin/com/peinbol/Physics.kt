@@ -1,4 +1,8 @@
-class Physics(val gravity: Double = -1.0) {
+package com.peinbol
+
+class Physics(
+    val gravity: Double = -1.0
+) {
     var boxes: List<Box> = emptyList()
 
     fun simulate(delta: Double) {
@@ -6,17 +10,11 @@ class Physics(val gravity: Double = -1.0) {
 
         for (b in boxes) {
             if (b.affectedByPhysics) {
-
-                // check collision only for non static objects.
-                // essentially, check if the next object position
-                // is colliding with another box, then
-
-                var anyCollision = false
                 var inGround = false
-
                 for (b2 in boxes) {
                     if (b2 == b) continue
 
+                    // Ground
                     if (b.y + b.vy - (b.sy/2.0) <= b2.y + (b2.sy/2.0) && // distinta
                         b.y + (b.sy/2.0) >= b2.y + (b2.sy/2.0) &&
                         // x
@@ -31,35 +29,7 @@ class Physics(val gravity: Double = -1.0) {
                         b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
                         inGround = true
                     }
-                    // Ground
-                    if (b.vy < 0) {
-
-                    } else if (b.vy > 0) {
-                        // floor
-                        /*if (b.y - (b.sy/2.0) <= b2.y + (b2.sy/2.0) && // distinta
-                            b.y + b.vy + (b.sy/2.0) >= b2.y + (b2.sy/2.0) &&
-                            // x
-                            b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
-                            b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0) &&
-                            // z
-                            b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
-                            b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
-                        ) {
-                            b.vy = -(b.vy * 0.5)
-                            if (Math.abs(b.vy) < 0.5) b.vy = 0.0
-                            b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
-                            println("collide going +y")
-                        }*/
-                    }
-
-                    // check if b is inside b2 (floor)
-
-
-                    // for other faces?
-                    // one-to-one?
-                    // say, for x. Is inside x and bound in both y,z
-                    // For +X
-                    // but should be checked before the speed is added to the final position.
+                    // TODO make roof collision
                     if (b.vx > 0) {
                         if (b.x + (b.vx) + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0) &&
@@ -71,7 +41,6 @@ class Physics(val gravity: Double = -1.0) {
                             b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
                             b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
                         ) {
-                            // collide with
                             b.vx = 0.0
                             b.x = b2.x - (b2.sx / 2.0) - (b.sx / 2.0)
                         }
@@ -86,7 +55,6 @@ class Physics(val gravity: Double = -1.0) {
                             b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
                             b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
                         ) {
-                            // collide with
                             b.vx = 0.0
                             b.x = b2.x + (b2.sx / 2.0) + (b.sx / 2.0)
                         }
@@ -103,7 +71,6 @@ class Physics(val gravity: Double = -1.0) {
                             b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0)
                         ) {
-                            // collide with
                             b.vz = 0.0
                             b.z = b2.z - (b2.sz / 2.0) - (b.sz / 2.0)
                         }
@@ -118,7 +85,6 @@ class Physics(val gravity: Double = -1.0) {
                             b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0)
                         ) {
-                            // collide with
                             b.vz = 0.0
                             b.z = b2.z + (b2.sz / 2.0) + (b.sz / 2.0)
                         }
@@ -127,7 +93,6 @@ class Physics(val gravity: Double = -1.0) {
 
 
                 b.x += b.vx
-
                 b.z += b.vz
                 b.inGround = inGround
                 if (!inGround) {

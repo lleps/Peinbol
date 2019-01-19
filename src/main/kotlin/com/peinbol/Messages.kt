@@ -1,8 +1,9 @@
+package com.peinbol
+
 import io.netty.buffer.ByteBuf
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
-
 
 
 /** To define, serialize and deserialize data to be sent over the wire */

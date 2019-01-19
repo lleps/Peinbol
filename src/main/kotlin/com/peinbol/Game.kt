@@ -1,10 +1,11 @@
+package com.peinbol
+
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
-import java.util.*
 import org.lwjgl.glfw.GLFW.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.thread
@@ -151,7 +152,6 @@ class Game {
             val buf = msgRaw as ByteBuf // (1)
             try {
                 val msg = Messages.receive(buf)
-                println("Receive message: $msg")
                 when (msg) {
                     is Messages.Spawn -> {
                         myBoxId = msg.boxId

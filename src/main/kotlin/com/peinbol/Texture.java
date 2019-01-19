@@ -1,4 +1,4 @@
-/**
+package com.peinbol; /**
  * Copyright (c) 2012, Matt DesLauriers All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,16 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
-import static org.lwjgl.opengl.GL30.glGenerateMipmap;
+import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 
-import org.lwjgl.BufferUtils;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
+import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 
 public class Texture {
 

@@ -1,3 +1,5 @@
+package com.peinbol
+
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.channel.*
@@ -47,14 +49,18 @@ class Server {
         physics = Physics()
         generateWorld()
         var lastPhysicsSimulate = System.currentTimeMillis()
+        var lastBroadcast = System.currentTimeMillis()
         while (true) {
             while (mainThreadTasks.isNotEmpty()) mainThreadTasks.poll()()
             val delta = System.currentTimeMillis() - lastPhysicsSimulate
             lastPhysicsSimulate = System.currentTimeMillis()
             for (player in players) updatePlayer(player, player.inputState, delta)
             physics.simulate(delta.toDouble())
-            broadcastCurrentWorldState()
-            Thread.sleep(50)
+            if (System.currentTimeMillis() - lastBroadcast > 25) {
+                broadcastCurrentWorldState()
+                lastBroadcast = System.currentTimeMillis()
+            }
+            Thread.sleep(16)
         }
     }
 
@@ -87,6 +93,7 @@ class Server {
 
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
+        // only if changed...
         for (box in boxes) {
             val msg = Messages.BoxUpdateMotion(
                 id = box.id,
@@ -248,7 +255,6 @@ class Server {
             val buf = rawMsg as ByteBuf
             val player = playersByHandlers[this] ?: error("can't get a player for handler $this")
             val msg = Messages.receive(buf)
-            println("Receive $msg from $player")
             when (msg) {
                 is Messages.InputState -> {
                     player.inputState = msg

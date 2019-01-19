@@ -1,3 +1,5 @@
+package com.peinbol
+
 import java.util.*
 
 fun generateId(): Int = randBetween(0, 0x7FFFFFFF)

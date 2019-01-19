@@ -1,3 +1,5 @@
+package com.peinbol
+
 class Box(
     var id: Int = 0,
     var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0,
@@ -20,11 +22,11 @@ class Color(val r: Double = 1.0, val g: Double = 1.0, val b: Double = 1.0, val a
 
 class Textures {
     /*companion object {
-        val WOOD = Texture(javaClass.classLoader.getResource("wood.png"))
-        val METAL = Texture(javaClass.classLoader.getResource("metal.png"))
-        val CLOTH = Texture(javaClass.classLoader.getResource("cloth.png"))
-        val CREEPER = Texture(javaClass.classLoader.getResource("creeper.png"))
-        val RUBIK = Texture(javaClass.classLoader.getResource("rubik.png"))
-        val FOOTBALL = Texture(javaClass.classLoader.getResource("football.png"))
+        val WOOD = com.peinbol.Texture(javaClass.classLoader.getResource("wood.png"))
+        val METAL = com.peinbol.Texture(javaClass.classLoader.getResource("metal.png"))
+        val CLOTH = com.peinbol.Texture(javaClass.classLoader.getResource("cloth.png"))
+        val CREEPER = com.peinbol.Texture(javaClass.classLoader.getResource("creeper.png"))
+        val RUBIK = com.peinbol.Texture(javaClass.classLoader.getResource("rubik.png"))
+        val FOOTBALL = com.peinbol.Texture(javaClass.classLoader.getResource("football.png"))
     }*/
 }

@@ -1,16 +1,12 @@
-import org.lwjgl.*
-import org.lwjgl.glfw.*
-import org.lwjgl.opengl.*
-import org.lwjgl.system.*
+package com.peinbol
 
-import java.nio.*
-
-import org.lwjgl.glfw.Callbacks.*
+import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.glfw.GLFWErrorCallback
+import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.*
-import org.lwjgl.opengl.GL12.GL_TEXTURE_3D
-import org.lwjgl.system.MemoryStack.*
-import org.lwjgl.system.MemoryUtil.*
+import org.lwjgl.system.MemoryStack.stackPush
+import org.lwjgl.system.MemoryUtil.NULL
 
 class Window(val width: Int = 800, val height: Int = 600) {
     var boxes: List<Box> = emptyList()
