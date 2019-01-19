@@ -1,7 +1,7 @@
 package com.peinbol
 
 class Physics(
-    val gravity: Double = -1.0
+    val gravity: Double = -0.5
 ) {
     var boxes: List<Box> = emptyList()
 
@@ -98,11 +98,10 @@ class Physics(
                 if (!inGround) {
                     b.vy += gravity * deltaSec
                     b.y += b.vy
-                } else {
-                    // ground friction
-                    b.vx *= 0.8
-                    b.vz *= 0.8
                 }
+                val friction = if (inGround) 0.85 else 0.95
+                b.vx *= friction
+                b.vz *= friction
             }
         }
     }

@@ -6,7 +6,10 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
 
 
-/** To define, serialize and deserialize data to be sent over the wire */
+/**
+ * To define, serialize and deserialize data to be sent over the wire.
+ * Pretty much bound to netty.
+ */
 object Messages {
     // client-to-server
     private const val SYNC_INPUT_STATE = 1 // to report my keys and camera data

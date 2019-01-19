@@ -1,14 +1,5 @@
 package com.peinbol
 
-import io.netty.bootstrap.ServerBootstrap
-import io.netty.buffer.ByteBuf
-import io.netty.channel.*
-import io.netty.channel.nio.NioEventLoopGroup
-import io.netty.channel.socket.SocketChannel
-import io.netty.channel.socket.nio.NioServerSocketChannel
-import java.util.concurrent.ConcurrentLinkedQueue
-import kotlin.concurrent.thread
-
 /**
  * The server should be responsible of:
  * - Accepting connections
@@ -26,24 +17,23 @@ class Server {
     }
 
     private class Player(
+        val connection: Network.PlayerConnection,
         val collisionBox: Box,
         var inputState: Messages.InputState,
-        val channel: Channel,
         var lastShot: Long = 0L
     )
 
     private lateinit var physics: Physics
-    private lateinit var networkChannel: Channel
-    private var players = mutableListOf<Player>()
+    private lateinit var network: Network.Server
     private var boxes = mutableListOf<Box>()
-    private var mainThreadTasks = ConcurrentLinkedQueue<() -> Unit>()
-    private var networkInitialized = false
-    private val playersByHandlers = hashMapOf<ServerConnectionHandler, Player>()
+    private val playersByConnections = hashMapOf<Network.PlayerConnection, Player>()
 
     fun run() {
-        println("Init network thread...")
-        thread { initNetworkThread() }
-        while (!networkInitialized) Thread.sleep(50)
+        println("Init network...")
+        network = Network.createServer("0.0.0.0", 8080)
+        network.onConnect { client -> handleConnection(client) }
+        network.onDisconnect { client -> handleDisconnection(client) }
+        network.onClientMessage { client, message -> handleClientMessage(client, message) }
 
         println("Init main thread...")
         physics = Physics()
@@ -51,12 +41,14 @@ class Server {
         var lastPhysicsSimulate = System.currentTimeMillis()
         var lastBroadcast = System.currentTimeMillis()
         while (true) {
-            while (mainThreadTasks.isNotEmpty()) mainThreadTasks.poll()()
             val delta = System.currentTimeMillis() - lastPhysicsSimulate
             lastPhysicsSimulate = System.currentTimeMillis()
-            for (player in players) updatePlayer(player, player.inputState, delta)
+            network.pollMessages()
+            for (player in playersByConnections.values) {
+                updatePlayer(player, player.inputState, delta)
+            }
             physics.simulate(delta.toDouble())
-            if (System.currentTimeMillis() - lastBroadcast > 25) {
+            if (System.currentTimeMillis() - lastBroadcast > 10) {
                 broadcastCurrentWorldState()
                 lastBroadcast = System.currentTimeMillis()
             }
@@ -93,9 +85,8 @@ class Server {
 
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
-        // only if changed...
-        for (box in boxes) {
-            val msg = Messages.BoxUpdateMotion(
+        for (box in boxes) { // TODO update only moved boxes
+            network.broadcast(Messages.BoxUpdateMotion(
                 id = box.id,
                 x = box.x,
                 y = box.y,
@@ -103,42 +94,47 @@ class Server {
                 vx = box.vx,
                 vy = box.vy,
                 vz = box.vz
-            )
-            //println("broadcast for $box")
-            for (p in players) Messages.send(p.channel, msg)
+            ))
         }
     }
 
-    private fun initNetworkThread() {
-        val bossGroup = NioEventLoopGroup() // (1)
-        val workerGroup = NioEventLoopGroup()
-        try {
-            val b = ServerBootstrap() // (2)
-            b.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel::class.java) // (3)
-                .childHandler(object : ChannelInitializer<SocketChannel>() { // (4)
-                    @Throws(Exception::class)
-                    public override fun initChannel(ch: SocketChannel) {
-                        ch.pipeline().addLast(Messages.MessagesDecoder(), ServerConnectionHandler())
-                    }
-                })
-                .option(ChannelOption.SO_BACKLOG, 128)          // (5)
-                .childOption(ChannelOption.SO_KEEPALIVE, true) // (6)
+    private fun handleConnection(connection: Network.PlayerConnection) {
+        println("Player connected: $connection")
 
-            println("Binding...")
-            val channelFuture = b.bind("0.0.0.0", 8080)
-            println("Done! Listening on :8080")
-            networkChannel = channelFuture.channel()
-            networkInitialized = true
-            channelFuture.sync()
-            networkChannel.closeFuture().sync() // shut down gracefully
-        } catch (e: Exception) {
-            println("Can't bind: $e")
-            e.printStackTrace(System.err)
-            System.exit(1)
-        } finally {
-            workerGroup.shutdownGracefully()
-            bossGroup.shutdownGracefully()
+        // build box
+        val playerBox = Box(
+            id = generateId(),
+            x = randBetween(-20, 20).toDouble(),
+            y = 10.0,
+            z = randBetween(-20, 20).toDouble(),
+            sx = 0.5,
+            sy = 2.0,
+            sz = 0.5,
+            affectedByPhysics = true
+        )
+        addBox(playerBox)
+
+        // build player
+        val player = Player(connection, playerBox, Messages.InputState())
+        playersByConnections[connection] = player
+
+        // stream current boxes and spawn
+        for (worldBox in boxes) network.send(buildStreamBoxMsg(worldBox), connection)
+        network.send(Messages.Spawn(playerBox.id), connection)
+    }
+
+    private fun handleDisconnection(connection: Network.PlayerConnection) {
+        val player = playersByConnections[connection]!!
+        println("Player disconnected: $connection")
+        removeBox(player.collisionBox)
+    }
+
+    private fun handleClientMessage(connection: Network.PlayerConnection, message: Any) {
+        val player = playersByConnections[connection]!!
+        when (message) {
+            is Messages.InputState -> {
+                player.inputState = message
+            }
         }
     }
 
@@ -147,7 +143,7 @@ class Server {
         val deltaSec = delta / 1000.0
         var speed = 1.5
 
-        if (!player.collisionBox.inGround) speed *= 0.5
+        if (!player.collisionBox.inGround) speed *= 0.8
         if (inputState.walk && player.collisionBox.inGround) speed = 0.3
 
         if (inputState.forward) {
@@ -189,8 +185,8 @@ class Server {
         }
     }
 
-    private fun streamBox(channel: Channel, box: Box) {
-        val msg = Messages.BoxAdded(
+    private fun buildStreamBoxMsg(box: Box): Messages.BoxAdded {
+        return Messages.BoxAdded(
             id = box.id,
             x = box.x,
             y = box.y,
@@ -203,69 +199,19 @@ class Server {
             vz = box.vz,
             affectedByPhysics = box.affectedByPhysics
         )
-        Messages.send(channel, msg)
     }
 
     private fun addBox(box: Box) {
         physics.boxes += box
         boxes.add(box)
-        for (p in players) streamBox(p.channel, box)
+        network.broadcast(buildStreamBoxMsg(box))
     }
 
-    private fun addPlayer(player: Player) {
-        physics.boxes += player.collisionBox
-        players.add(player)
-        addBox(player.collisionBox)
-    }
-
-    private inner class ServerConnectionHandler : ChannelInboundHandlerAdapter() {
-        override fun channelActive(ctx: ChannelHandlerContext) {
-            println("Player connected (${ctx.channel().remoteAddress()})")
-
-            // Create the player
-            val playerBox = Box(
-                id = generateId(),
-                x = randBetween(-20, 20).toDouble(),
-                y = 10.0,
-                z = randBetween(-20, 20).toDouble(),
-                sx = 0.5,
-                sy = 2.0,
-                sz = 0.5,
-                affectedByPhysics = true
-            )
-            val player = Player(playerBox, Messages.InputState(), ctx.channel())
-            addPlayer(player)
-            playersByHandlers[this] = player
-
-            // Stream all the current boxes
-            println("Streaming all the boxes...")
-            for (worldBox in boxes) streamBox(ctx.channel(), worldBox)
-
-            // Spawn
-            println("Spawning...")
-            Messages.send(ctx.channel(), Messages.Spawn(playerBox.id))
-        }
-
-        override fun channelInactive(ctx: ChannelHandlerContext) {
-            println("Player disconnected: ${ctx.channel().remoteAddress()}")
-            playersByHandlers.remove(this)
-        }
-
-        override fun channelRead(ctx: ChannelHandlerContext, rawMsg: Any) {
-            val buf = rawMsg as ByteBuf
-            val player = playersByHandlers[this] ?: error("can't get a player for handler $this")
-            val msg = Messages.receive(buf)
-            when (msg) {
-                is Messages.InputState -> {
-                    player.inputState = msg
-                }
-            }
-            buf.release()
-        }
-
-        override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-            cause.printStackTrace()
-            ctx.close()
+    private fun removeBox(box: Box) {
+        if (box in boxes) {
+            physics.boxes -= box
+            boxes.remove(box)
+            // TODO we need a message to remove boxes!
         }
     }
 }
