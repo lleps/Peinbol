@@ -12,7 +12,7 @@ import org.lwjgl.opengl.GL12.GL_TEXTURE_3D
 import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
-class Window(val width: Int = 1366, val height: Int = 768) {
+class Window(val width: Int = 800, val height: Int = 600) {
     var boxes: List<Box> = emptyList()
 
     var cameraPosX = 0.0
@@ -52,6 +52,8 @@ class Window(val width: Int = 1366, val height: Int = 768) {
             return buffY[0]
         }
 
+    private lateinit var defaultTxt: Texture
+
     fun init() {
 
         GLFWErrorCallback.createPrint(System.err).set()
@@ -64,7 +66,7 @@ class Window(val width: Int = 1366, val height: Int = 768) {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // the window will be resizable
 
 
-        window = glfwCreateWindow(width, height, "Hello World!", glfwGetPrimaryMonitor(), NULL)
+        window = glfwCreateWindow(width, height, "Hello World!", NULL/*glfwGetPrimaryMonitor()*/, NULL)
         if (window == NULL)
             throw RuntimeException("Failed to create the GLFW window")
 
@@ -98,6 +100,8 @@ class Window(val width: Int = 1366, val height: Int = 768) {
 
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
+
+        defaultTxt = Texture(javaClass.classLoader.getResource("wood.png"))
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -135,7 +139,7 @@ class Window(val width: Int = 1366, val height: Int = 768) {
         glTranslated(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         for (box in boxes) {
-            box.txt.bind()
+            (box.txt ?: defaultTxt).bind()
 
             glColor3d(box.color.r, box.color.g, box.color.b)
 

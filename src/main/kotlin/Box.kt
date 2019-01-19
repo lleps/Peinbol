@@ -1,12 +1,13 @@
 class Box(
-        var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0,
-        var sx: Double = 0.0, var sy: Double = 0.0, var sz: Double = 0.0,
-        var vx: Double = 0.0, var vy: Double = 0.0, var vz: Double = 0.0,
-        var affectedByPhysics: Boolean = true,
-        var color: Color = Color(),
-        var inGround: Boolean = false,
-        var txt: Texture = Textures.METAL,
-        var txtMultiplier: Double = 1.0
+    var id: Int = 0,
+    var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0,
+    var sx: Double = 0.0, var sy: Double = 0.0, var sz: Double = 0.0,
+    var vx: Double = 0.0, var vy: Double = 0.0, var vz: Double = 0.0,
+    var affectedByPhysics: Boolean = true,
+    var color: Color = Color(),
+    var inGround: Boolean = false,
+    var txt: Texture? = null,
+    var txtMultiplier: Double = 1.0
 )
 
 class Color(val r: Double = 1.0, val g: Double = 1.0, val b: Double = 1.0, val a: Double = 1.0) {
@@ -18,12 +19,12 @@ class Color(val r: Double = 1.0, val g: Double = 1.0, val b: Double = 1.0, val a
 }
 
 class Textures {
-    companion object {
+    /*companion object {
         val WOOD = Texture(javaClass.classLoader.getResource("wood.png"))
         val METAL = Texture(javaClass.classLoader.getResource("metal.png"))
         val CLOTH = Texture(javaClass.classLoader.getResource("cloth.png"))
         val CREEPER = Texture(javaClass.classLoader.getResource("creeper.png"))
         val RUBIK = Texture(javaClass.classLoader.getResource("rubik.png"))
         val FOOTBALL = Texture(javaClass.classLoader.getResource("football.png"))
-    }
+    }*/
 }

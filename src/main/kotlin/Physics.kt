@@ -30,7 +30,6 @@ class Physics(val gravity: Double = -1.0) {
                         if (Math.abs(b.vy) < 0.5) b.vy = 0.0
                         b.y = b2.y + (b2.sy / 2.0) + (b.sy / 2.0)
                         inGround = true
-                        println("collide going -y")
                     }
                     // Ground
                     if (b.vy < 0) {
@@ -74,7 +73,6 @@ class Physics(val gravity: Double = -1.0) {
                         ) {
                             // collide with
                             b.vx = 0.0
-                            println("collide with wall (going +x)")
                             b.x = b2.x - (b2.sx / 2.0) - (b.sx / 2.0)
                         }
                     } else if (b.vx < 0) {
@@ -90,7 +88,6 @@ class Physics(val gravity: Double = -1.0) {
                         ) {
                             // collide with
                             b.vx = 0.0
-                            println("collide with wall (going -x)")
                             b.x = b2.x + (b2.sx / 2.0) + (b.sx / 2.0)
                         }
                     }
@@ -108,7 +105,6 @@ class Physics(val gravity: Double = -1.0) {
                         ) {
                             // collide with
                             b.vz = 0.0
-                            println("collide with wall (going +z)")
                             b.z = b2.z - (b2.sz / 2.0) - (b.sz / 2.0)
                         }
                     } else if (b.vz < 0) {
@@ -124,7 +120,6 @@ class Physics(val gravity: Double = -1.0) {
                         ) {
                             // collide with
                             b.vz = 0.0
-                            println("collide with wall (going -z)")
                             b.z = b2.z + (b2.sz / 2.0) + (b.sz / 2.0)
                         }
                     }
@@ -143,7 +138,6 @@ class Physics(val gravity: Double = -1.0) {
                     b.vx *= 0.8
                     b.vz *= 0.8
                 }
-
             }
         }
     }
@@ -151,8 +145,8 @@ class Physics(val gravity: Double = -1.0) {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            val b1 = Box(1.0,1.0,5.0,  1.0,1.0,1.0)
-            val b2 = Box(3.0,3.0,5.0,  2.0,2.0,2.0)
+            val b1 = Box(0, 1.0,1.0,5.0,  1.0,1.0,1.0)
+            val b2 = Box(0, 3.0,3.0,5.0,  2.0,2.0,2.0)
             val out = Box()
             val result = boxesIntersect(b1, 1.0, 1.0, 0.0, b2, out)
             println("Intersect: $result | out: ${out.x} ${out.y} ${out.z}")
