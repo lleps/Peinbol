@@ -141,10 +141,10 @@ class Server {
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
         val deltaSec = delta / 1000.0
-        var speed = 1.5
+        var speed = 1.0
 
         if (!player.collisionBox.inGround) speed *= 0.8
-        if (inputState.walk && player.collisionBox.inGround) speed = 0.3
+        if (inputState.walk && player.collisionBox.inGround) speed = 0.2
 
         if (inputState.forward) {
             player.collisionBox.vx -= Math.sin(Math.toRadians(inputState.cameraY)) * speed * deltaSec
@@ -167,9 +167,9 @@ class Server {
             player.collisionBox.vy += 0.3
         }
 
-        if (inputState.fire && System.currentTimeMillis() - player.lastShot > 100) {
+        if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
             player.lastShot = System.currentTimeMillis()
-            val shotSpeed = 1.5*0.5
+            val shotSpeed = 2.0
             val frontPos = 0.6
             val box = Box(
                 id = generateId(),
@@ -178,7 +178,7 @@ class Server {
                 z = player.collisionBox.z + -Math.cos(Math.toRadians(inputState.cameraY)) * frontPos,
                 sx = 0.2, sy = 0.2, sz = 0.2,
                 vx = -Math.sin(Math.toRadians(inputState.cameraY)) * shotSpeed,
-                vy = 0.3*0.5, // TODO should be based on cameraX
+                vy = Math.sin(Math.toRadians(inputState.cameraX)) * shotSpeed,
                 vz = -Math.cos(Math.toRadians(inputState.cameraY)) * shotSpeed
             )
             addBox(box)

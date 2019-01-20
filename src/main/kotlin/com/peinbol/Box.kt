@@ -9,7 +9,8 @@ class Box(
     var color: Color = Color(),
     var inGround: Boolean = false,
     var txt: Texture? = null,
-    var txtMultiplier: Double = 1.0
+    var txtMultiplier: Double = 1.0,
+    var bounceMultiplier: Double = 0.0
 )
 
 class Color(val r: Double = 1.0, val g: Double = 1.0, val b: Double = 1.0, val a: Double = 1.0) {

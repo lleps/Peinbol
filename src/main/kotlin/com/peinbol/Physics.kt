@@ -1,7 +1,7 @@
 package com.peinbol
 
 class Physics(
-    val gravity: Double = -0.5
+    val gravity: Double = -1.5
 ) {
     var boxes: List<Box> = emptyList()
 
@@ -41,7 +41,7 @@ class Physics(
                             b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
                             b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
                         ) {
-                            b.vx = 0.0
+                            b.vx *= -1.0
                             b.x = b2.x - (b2.sx / 2.0) - (b.sx / 2.0)
                         }
                     } else if (b.vx < 0) {
@@ -55,7 +55,7 @@ class Physics(
                             b.z + (b.sz/2.0) > b2.z - (b2.sz/2.0) &&
                             b.z - (b.sz/2.0) < b2.z + (b2.sz/2.0)
                         ) {
-                            b.vx = 0.0
+                            b.vx *= -1.0
                             b.x = b2.x + (b2.sx / 2.0) + (b.sx / 2.0)
                         }
                     }
@@ -71,7 +71,7 @@ class Physics(
                             b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0)
                         ) {
-                            b.vz = 0.0
+                            b.vz *= -1.0
                             b.z = b2.z - (b2.sz / 2.0) - (b.sz / 2.0)
                         }
                     } else if (b.vz < 0) {
@@ -85,7 +85,7 @@ class Physics(
                             b.x + (b.sx/2.0) > b2.x - (b2.sx/2.0) &&
                             b.x - (b.sx/2.0) < b2.x + (b2.sx/2.0)
                         ) {
-                            b.vz = 0.0
+                            b.vz *= -1.0
                             b.z = b2.z + (b2.sz / 2.0) + (b.sz / 2.0)
                         }
                     }
@@ -99,7 +99,7 @@ class Physics(
                     b.vy += gravity * deltaSec
                     b.y += b.vy
                 }
-                val friction = if (inGround) 0.85 else 0.95
+                val friction = if (inGround) 0.85 else 0.99
                 b.vx *= friction
                 b.vz *= friction
             }
