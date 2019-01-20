@@ -48,7 +48,7 @@ class Window(val width: Int = 800, val height: Int = 600) {
             return buffY[0]
         }
 
-    private lateinit var defaultTxt: Texture
+    private val textures = mutableMapOf<Int, Texture>()
 
     fun init() {
 
@@ -97,7 +97,9 @@ class Window(val width: Int = 800, val height: Int = 600) {
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
 
-        defaultTxt = Texture(javaClass.classLoader.getResource("wood.png"))
+        for ((txtId, txtFile) in Textures.FILES) {
+            textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
+        }
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -117,7 +119,6 @@ class Window(val width: Int = 800, val height: Int = 600) {
     }
 
     fun draw() {
-
         glEnable(GL_TEXTURE_2D)
 
         val u = -1f
@@ -134,16 +135,25 @@ class Window(val width: Int = 800, val height: Int = 600) {
         glRotated(-cameraRotZ, 0.0, 0.0, 1.0)
         glTranslated(-cameraPosX, -cameraPosY, -cameraPosZ)
 
-        for (box in boxes) {
-            (box.txt ?: defaultTxt).bind()
+        val skyColor = Color(152.0/255.0, 209.0/255.0, 214.0/255.0)
+        glClearColor(
+            skyColor.r.toFloat(),
+            skyColor.g.toFloat(),
+            skyColor.b.toFloat(),
+            skyColor.a.toFloat()
+        )
 
-            glColor3d(box.color.r, box.color.g, box.color.b)
+        val ambientLight = 0.8f
+        for (box in boxes) {
+            textures[box.textureId]?.bind()
+
+            glColor3d(box.color.r * ambientLight, box.color.g * ambientLight, box.color.b * ambientLight)
 
             glPushMatrix()
             glTranslated(box.x, box.y, box.z)
             glScaled(box.sx / 2.0, box.sy / 2.0, box.sz / 2.0)
             glBegin(GL_QUADS)
-            val top = box.txtMultiplier
+            val top = box.textureMultiplier
             glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0,  1.0)
             glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0,  1.0)
             glTexCoord2d(top, top); glVertex3d( 1.0,  1.0,  1.0)

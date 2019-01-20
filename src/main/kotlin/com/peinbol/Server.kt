@@ -67,6 +67,13 @@ class Server {
                 sx = 1.0,
                 sy = 1.0,
                 sz = 1.0,
+                textureId = listOf(
+                    Textures.CLOTH_ID,
+                    Textures.METAL_ID,
+                    Textures.CREEPER_ID,
+                    Textures.FOOTBALL_ID,
+                    Textures.RUBIK_ID
+                ).random(),
                 affectedByPhysics = true
             )
             addBox(box)
@@ -78,10 +85,63 @@ class Server {
             x = 0.0, y = -50.0, z = 0.0,
             sx = 100.0, sy = 1.0, sz = 100.0,
             affectedByPhysics = false,
-            txtMultiplier = 50.0
+            textureId = Textures.WOOD_ID,
+            textureMultiplier = 50.0
         )
         addBox(base)
+
+        // build 4 walls
+        addBox(Box(
+            id = generateId(),
+            x = -50.0, y = -45.0, z = 0.0,
+            sx = 2.0, sy = 10.0, sz = 100.0,
+            affectedByPhysics = false,
+            textureId = Textures.METAL_ID,
+            textureMultiplier = 35.0
+        ))
+        addBox(Box(
+            id = generateId(),
+            x = 50.0, y = -45.0, z = 0.0,
+            sx = 2.0, sy = 10.0, sz = 100.0,
+            affectedByPhysics = false,
+            textureId = Textures.METAL_ID,
+            textureMultiplier = 35.0
+        ))
+        addBox(Box(
+            id = generateId(),
+            x = 0.0, y = -45.0, z = -50.0,
+            sx = 100.0, sy = 10.0, sz = 2.0,
+            affectedByPhysics = false,
+            textureId = Textures.METAL_ID,
+            textureMultiplier = 35.0
+        ))
+        addBox(Box(
+            id = generateId(),
+            x = 0.0, y = -45.0, z = 50.0,
+            sx = 100.0, sy = 10.0, sz = 2.0,
+            affectedByPhysics = false,
+            textureId = Textures.METAL_ID,
+            textureMultiplier = 35.0
+        ))
+
+        // some random walls
+        for (i in 0..randBetween(10, 100)) {
+            val length = randBetween(5, 10).toDouble()
+            val axis = randBetween(0, 2)
+            addBox(Box(
+                id = generateId(),
+                x = randBetween(-50, 50).toDouble(), y = -45.0, z = randBetween(-50, 50).toDouble(),
+                sx = if (axis == 0) 1.0 else length, sy = 10.0, sz = if (axis == 0) length else 1.0,
+                affectedByPhysics = false,
+                textureId = Textures.METAL_ID,
+                textureMultiplier = 35.0
+            ))
+        }
     }
+
+    // 2 cool things.
+    // 1. make time and texures multiplied by it. find some color (i.e some sky col) and start adding black to it... multiply obj color to it
+    // 2. better textures: use grass and. use good perspective on them...
 
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
@@ -110,7 +170,10 @@ class Server {
             sx = 0.5,
             sy = 2.0,
             sz = 0.5,
-            affectedByPhysics = true
+            textureId = Textures.METAL_ID,
+            affectedByPhysics = true,
+            bounceMultiplier = 0.0,
+            textureMultiplier = 0.01
         )
         addBox(playerBox)
 
@@ -179,7 +242,10 @@ class Server {
                 sx = 0.2, sy = 0.2, sz = 0.2,
                 vx = -Math.sin(Math.toRadians(inputState.cameraY)) * shotSpeed,
                 vy = Math.sin(Math.toRadians(inputState.cameraX)) * shotSpeed,
-                vz = -Math.cos(Math.toRadians(inputState.cameraY)) * shotSpeed
+                vz = -Math.cos(Math.toRadians(inputState.cameraY)) * shotSpeed,
+                textureId = Textures.RUBIK_ID,
+                textureMultiplier = 0.01,
+                bounceMultiplier = 0.8
             )
             addBox(box)
         }
@@ -197,7 +263,10 @@ class Server {
             vx = box.vx,
             vy = box.vy,
             vz = box.vz,
-            affectedByPhysics = box.affectedByPhysics
+            affectedByPhysics = box.affectedByPhysics,
+            textureId = box.textureId,
+            textureMultiplier = box.textureMultiplier,
+            bounceMultiplier = box.bounceMultiplier
         )
     }
 

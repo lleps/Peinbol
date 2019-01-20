@@ -55,6 +55,7 @@ class Game {
             window.draw()
         }
         window.destroy()
+        network.close()
     }
 
     /** Called when a message from the server arrives. */
@@ -73,14 +74,11 @@ class Game {
                     x = msg.x, y = msg.y, z = msg.z,
                     sx = msg.sx, sy = msg.sy, sz = msg.sz,
                     vx = msg.vx, vy = msg.vy, vz = msg.vz,
-                    affectedByPhysics = msg.affectedByPhysics
+                    affectedByPhysics = msg.affectedByPhysics,
+                    textureId = msg.textureId,
+                    textureMultiplier = msg.textureMultiplier,
+                    bounceMultiplier = msg.bounceMultiplier
                 )
-                if (!box.affectedByPhysics) {
-                    //box.txt = "wood"
-                    box.txtMultiplier = 50.0
-                } else {
-                    box.txt = txts.randomElement()
-                }
                 addBox(box)
             }
             is Messages.BoxUpdateMotion -> {
