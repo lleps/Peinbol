@@ -37,6 +37,7 @@ object Messages {
     /** Decoder to make messages processed properly, in chunks of message-size */
     class MessagesDecoder : ReplayingDecoder<Void>() {
         override fun decode(ctx: ChannelHandlerContext, inBuf: ByteBuf, out: MutableList<Any>) {
+            // TODO: ensure there ain't leaks
             val typeId = inBuf.readInt()
             val type = messageTypes[typeId] ?: error("invalid typeId on decode: $typeId")
             val msgByteCount = type.bytes
@@ -64,6 +65,7 @@ object Messages {
         buf.writeInt(typeId)
         type.write(obj, buf)
         channel.writeAndFlush(buf)
+        // TODO: ensure there ain't leaks
     }
 
     // Messages
@@ -140,6 +142,8 @@ object Messages {
         return Vector3f(readFloat(), readFloat(), readFloat())
     }
 
+    // TODO: add quaternion, and functions to (de)serialize it
+
     /** Add some box to the world. */
     class BoxAdded(
         val id: Int, // 4
@@ -184,25 +188,29 @@ object Messages {
         }
     }
 
+    // TODO: add quaternion
     /** Update box movement */
     class BoxUpdateMotion(
         val id: Int, // 4
         val position: Vector3f, // 4*3
-        val velocity: Vector3f // 4*3
+        val velocity: Vector3f, // 4*3
+        val angularVelocity: Vector3f // 4*3
     ) {
         companion object : MessageType<BoxUpdateMotion> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)
+                get() = 4+(4*3)+(4*3)+(4*3)
 
             override fun write(msg: BoxUpdateMotion, buf: ByteBuf) {
                 buf.writeInt(msg.id)
                 buf.writeVector3f(msg.position)
                 buf.writeVector3f(msg.velocity)
+                buf.writeVector3f(msg.angularVelocity)
             }
 
             override fun read(buf: ByteBuf): BoxUpdateMotion {
                 return BoxUpdateMotion(
                     buf.readInt(),
+                    buf.readVector3f(),
                     buf.readVector3f(),
                     buf.readVector3f()
                 )

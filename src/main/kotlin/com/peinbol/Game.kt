@@ -1,6 +1,7 @@
 package com.peinbol
 
 import org.lwjgl.glfw.GLFW.*
+import javax.vecmath.Vector3f
 import kotlin.concurrent.thread
 
 /**
@@ -41,6 +42,7 @@ class Game {
         txts // init txts variable when opengl is already loaded, otherwise jvm crash
         window.centerCursor()
         physics = Physics()
+        physics.init()
 
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
@@ -85,8 +87,10 @@ class Game {
             is Messages.BoxUpdateMotion -> {
                 val box = boxes[msg.id]
                 if (box != null) {
-                    box.position = msg.position
-                    box.velocity = msg.velocity
+                    box.updatePosition(msg.position)
+                    box.updateLinearVelocity(msg.velocity)
+                    box.updateAngularVelocity(msg.angularVelocity)
+                    // TODO: fetch quaternion also.
                 } else {
                     println("Can't find box for id ${msg.id}")
                 }
@@ -126,9 +130,8 @@ class Game {
 
     private fun addBox(box: Box) {
         if (box.id !in boxes) {
-            println("Add box locally: $box")
             boxes[box.id] = box
-            physics.boxes += box
+            physics.register(box)
             window.boxes += box
         }
     }

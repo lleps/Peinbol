@@ -1,5 +1,21 @@
 package com.peinbol
 
+import com.bulletphysics.collision.broadphase.DbvtBroadphase
+import com.bulletphysics.collision.dispatch.CollisionDispatcher
+import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration
+import com.bulletphysics.collision.shapes.BoxShape
+import com.bulletphysics.collision.shapes.CollisionShape
+import com.bulletphysics.collision.shapes.StaticPlaneShape
+import com.bulletphysics.dynamics.DiscreteDynamicsWorld
+import com.bulletphysics.dynamics.DynamicsWorld
+import com.bulletphysics.dynamics.RigidBody
+import com.bulletphysics.dynamics.RigidBodyConstructionInfo
+import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver
+import com.bulletphysics.linearmath.DefaultMotionState
+import com.bulletphysics.linearmath.MotionState
+import com.bulletphysics.linearmath.Transform
+import javax.vecmath.Matrix4f
+import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 
 class Physics(private val gravity: Vector3f = Vector3f(0f, -0.05f, 0f)) {
@@ -7,150 +23,53 @@ class Physics(private val gravity: Vector3f = Vector3f(0f, -0.05f, 0f)) {
         private const val DELTA_TO_STOP_BOUNCING = 0.1 // round error to go 0
     }
 
-    var boxes: List<Box> = emptyList()
-    var debugBox: Box? = null
+    private lateinit var world: DynamicsWorld
+    private val boxes = mutableListOf<Box>()
 
-    fun simulate(delta: Double) {
-        for (b in boxes) {
-            if (b.affectedByPhysics) {
-                if (debugBox == null && b.mass > 0.1f) {
-                    //debugBox = b
-                }
-
-                // TODO: divide into: apply(friction,gravity), update(), checkCollision(). (checkCollision may ignore velocity)
-
-                // Apply friction and gravity
-                val c = if (!b.inGround) 0.01f else 0.5f
-                val normal = 1
-                val frictionMag = c * normal
-                val friction = b.velocity.get()
-                if (friction.length() > 0.000001) {
-                    friction.scale(-1f)
-                    friction.normalize()
-                    friction.scale(frictionMag)
-                    b.applyForce(friction)
-                }
-                b.applyForce(gravity.withOps { scale(b.mass) })
-
-                // Update
-                b.velocity.add(b.acceleration)
-                b.position.add(b.velocity)
-                b.acceleration.scale(0f)
-
-                // Check collision
-                var collide = false
-                for (b2 in boxes) {
-                    if (b2 == b) continue
-
-                    if (checkCollision(b, b2)) {
-                        collide = true
-                    }
-                }
-                b.inGround = collide
-
-
-                /*
-                b.position.x += b.velocity.x
-                b.position.z += b.velocity.z
-                b.inGround = collide
-
-                if (!collide) {
-                    b.velocity.y += gravity
-                    b.position.y += b.velocity.y
-                }*/
-                //val friction = if (collide) 0.9f else 1.0f
-                //b.velocity.x *= friction
-                //b.velocity.z *= friction
-            }
-        }
+    fun init() {
+        val broadphase = DbvtBroadphase()
+        val collisionConfiguration = DefaultCollisionConfiguration()
+        val collisionDispatcher = CollisionDispatcher(collisionConfiguration)
+        val constraintSolver = SequentialImpulseConstraintSolver()
+        world = DiscreteDynamicsWorld(collisionDispatcher, broadphase, constraintSolver, collisionConfiguration)
+        world.setGravity(Vector3f(0f, -10f, 0f))
     }
 
-    private fun checkCollision(b: Box, b2: Box): Boolean {
-        // TODO may use alignedX/Y/Z(b,b2) to reduce boilerplate.
-        // TODO dont add speed...
-        var result = false
-        // Ground
-        if (
-            b.position.y + (b.size.y/2f) > b2.position.y - (b2.size.y/2f) &&
-            b.position.y - (b.size.y/2f) < b2.position.y + (b2.size.y/2f) &&
-            //b.position.y + b.velocity.y - (b.size.y/2f) <= b2.position.y + (b2.size.y/2f) &&
-            //b.position.y + (b.size.y/2f) >= b2.position.y + (b2.size.y/2f) &&
-            // x
-            b.position.x + (b.size.x/2f) > b2.position.x - (b2.size.x/2f) &&
-            b.position.x - (b.size.x/2f) < b2.position.x + (b2.size.x/2f) &&
-            // z
-            b.position.z + (b.size.z/2f) > b2.position.z - (b2.size.z/2f) &&
-            b.position.z - (b.size.z/2f) < b2.position.z + (b2.size.z/2f)
-        ) {
-            b.velocity.y *= -b.bounceMultiplier
-            if (Math.abs(b.velocity.y) < DELTA_TO_STOP_BOUNCING) b.velocity.y = 0f
-            b.position.y = b2.position.y + (b2.size.y / 2f) + (b.size.y / 2f)
-            result = true
+    fun register(box: Box) {
+        if (box in boxes) return
+        boxes += box
+        val constructionInfo = RigidBodyConstructionInfo(
+            box.mass,
+            DefaultMotionState(Transform(
+                Matrix4f(Quat4f(0f, 0f, 0f, 1f), box.position.get(), 1f)
+            )),
+            BoxShape(box.size.withOps { scale(0.5f) })
+        )
+        constructionInfo.restitution = box.bounceMultiplier
+        val body = RigidBody(constructionInfo)
+        world.addRigidBody(body)
+        box.rigidBody = body
+    }
+
+    fun unRegister(box: Box) {
+        if (box !in boxes) return
+        boxes -= box
+        world.removeRigidBody(box.rigidBody!!)
+    }
+
+    fun simulate(delta: Double) {
+        world.stepSimulation(delta.toFloat() / 1000f)
+        // now copy to the objects pos the real data
+        val transform = Transform()
+        for (box in boxes) {
+            val rigidBody = box.rigidBody!!
+            rigidBody.motionState.getWorldTransform(transform)
+            // copy to box the physics info
+            box.position = transform.origin.get()
+            rigidBody.getLinearVelocity(box.velocity)
+            rigidBody.getAngularVelocity(box.angularVelocity)
+            // TODO: set inGround if velocity y is low
+            // TODO: also read quaternion
         }
-        // TODO add roof collision
-        if (b.velocity.x > 0) {
-            if (b.position.x + (b.size.x/2f) > b2.position.x - (b2.size.x/2f) &&
-                b.position.x - (b.size.x/2f) < b2.position.x + (b2.size.x/2f) &&
-                // y
-                b.position.y + (b.size.y/2f) > b2.position.y - (b2.size.y/2f) &&
-                b.position.y - (b.size.y/2f) < b2.position.y + (b2.size.y/2f) &&
-                // z
-                b.position.z + (b.size.z/2f) > b2.position.z - (b2.size.z/2f) &&
-                b.position.z - (b.size.z/2f) < b2.position.z + (b2.size.z/2f)
-            ) {
-                b.velocity.x *= -b.bounceMultiplier
-                if (Math.abs(b.velocity.x) < DELTA_TO_STOP_BOUNCING) b.velocity.x = 0f
-                b.position.x = b2.position.x - (b2.size.x / 2f) - (b.size.x / 2f)
-                result = true
-            }
-        } else if (b.velocity.x < 0) {
-            if (b.position.x + (b.size.x/2f) > b2.position.x - (b2.size.x/2f) &&
-                b.position.x - (b.size.x/2f) < b2.position.x + (b2.size.x/2f) &&
-                // y
-                b.position.y + (b.size.y/2f) > b2.position.y - (b2.size.y/2f) &&
-                b.position.y - (b.size.y/2f) < b2.position.y + (b2.size.y/2f) &&
-                // z
-                b.position.z + (b.size.z/2f) > b2.position.z - (b2.size.z/2f) &&
-                b.position.z - (b.size.z/2f) < b2.position.z + (b2.size.z/2f)
-            ) {
-                b.velocity.x *= -b.bounceMultiplier
-                if (Math.abs(b.velocity.x) < DELTA_TO_STOP_BOUNCING) b.velocity.x = 0f
-                b.position.x = b2.position.x + (b2.size.x / 2f) + (b.size.x / 2f)
-                result = true
-            }
-        }
-        // collide with z
-        if (b.velocity.z > 0) {
-            if (b.position.z + (b.size.z/2f) > b2.position.z - (b2.size.z/2f) &&
-                b.position.z - (b.size.z/2f) < b2.position.z + (b2.size.z/2f) &&
-                // y
-                b.position.y + (b.size.y/2f) > b2.position.y - (b2.size.y/2f) &&
-                b.position.y - (b.size.y/2f) < b2.position.y + (b2.size.y/2f) &&
-                // x
-                b.position.x + (b.size.x/2f) > b2.position.x - (b2.size.x/2f) &&
-                b.position.x - (b.size.x/2f) < b2.position.x + (b2.size.x/2f)
-            ) {
-                b.velocity.z *= -b.bounceMultiplier
-                if (Math.abs(b.velocity.z) < DELTA_TO_STOP_BOUNCING) b.velocity.z = 0f
-                b.position.z = b2.position.z - (b2.size.z / 2f) - (b.size.z / 2f)
-                result = true
-            }
-        } else if (b.velocity.z < 0) {
-            if (b.position.z + (b.size.z/2f) > b2.position.z - (b2.size.z/2f) &&
-                b.position.z - (b.size.z/2f) < b2.position.z + (b2.size.z/2f) &&
-                // y
-                b.position.y + (b.size.y/2f) > b2.position.y - (b2.size.y/2f) &&
-                b.position.y - (b.size.y/2f) < b2.position.y + (b2.size.y/2f) &&
-                // x
-                b.position.x + (b.size.x/2f) > b2.position.x - (b2.size.x/2f) &&
-                b.position.x - (b.size.x/2f) < b2.position.x + (b2.size.x/2f)
-            ) {
-                b.velocity.z *= -b.bounceMultiplier
-                if (Math.abs(b.velocity.z) < DELTA_TO_STOP_BOUNCING) b.velocity.z = 0f
-                b.position.z = b2.position.z + (b2.size.z / 2f) + (b.size.z / 2f)
-                result = true
-            }
-        }
-        return result
     }
 }

@@ -1,5 +1,6 @@
 package com.peinbol
 
+import com.bulletphysics.linearmath.Transform
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
@@ -9,6 +10,15 @@ import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
 import javax.vecmath.Color3f
 import javax.vecmath.Color4f
+import org.lwjgl.BufferUtils
+import java.nio.FloatBuffer
+import org.lwjgl.opengl.GL11
+import com.sun.xml.internal.ws.addressing.EndpointReferenceUtil.transform
+import com.bulletphysics.linearmath.MotionState
+
+
+
+
 
 class Window(val width: Int = 800, val height: Int = 600) {
     var boxes: List<Box> = emptyList()
@@ -116,6 +126,11 @@ class Window(val width: Int = 800, val height: Int = 600) {
     private var fpsCount: Long = 0
     private var countFpsExpiry = System.currentTimeMillis() + 1000
 
+    // cached for drawing with bullet matrix
+    private var matrix = FloatArray(16)
+    private var transform = Transform()
+    private var transformBuffer = BufferUtils.createFloatBuffer(16)
+
     fun centerCursor() {
         glfwSetCursorPos(window, 100.0, 100.0)
     }
@@ -141,11 +156,21 @@ class Window(val width: Int = 800, val height: Int = 600) {
         for (box in boxes) {
             textures[box.textureId]?.bind()
 
+
             // TODO: based on box size, keep the texture relation to 1/1
             glColor3f(box.theColor.x * ambientLight, box.theColor.y * ambientLight, box.theColor.z * ambientLight)
 
             glPushMatrix()
-            glTranslatef(box.position.x, box.position.y, box.position.z)
+
+            // set position and rotation based on the rigid body
+            val bodyMotionState = box.rigidBody!!.motionState
+            bodyMotionState.getWorldTransform(transform)
+            transform.getOpenGLMatrix(matrix)
+            transformBuffer.clear()
+            transformBuffer.put(matrix)
+            transformBuffer.flip()
+            glMultMatrixf(transformBuffer)
+
             glScalef(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
             glBegin(GL_QUADS)
             val top = box.textureMultiplier

@@ -39,6 +39,7 @@ class Server {
 
         println("Init main thread...")
         physics = Physics()
+        physics.init()
         generateWorld()
         var lastPhysicsSimulate = System.currentTimeMillis()
         var lastBroadcast = System.currentTimeMillis()
@@ -156,7 +157,8 @@ class Server {
             network.broadcast(Messages.BoxUpdateMotion(
                 id = box.id,
                 position = box.position,
-                velocity = box.velocity
+                velocity = box.velocity,
+                angularVelocity = box.angularVelocity
             ))
         }
     }
@@ -197,6 +199,7 @@ class Server {
     private fun handleDisconnection(connection: Network.PlayerConnection) {
         val player = playersByConnections[connection]!!
         println("Player disconnected: $connection")
+        playersByConnections.remove(connection)
         removeBox(player.collisionBox)
     }
 
@@ -209,10 +212,14 @@ class Server {
         }
     }
 
+    private var lastJump = System.currentTimeMillis()
+
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
         val deltaSec = delta / 1000f
-        var force = 50f
+        var force = 5000f
+
+        // TODO: find a way to balance this, and set a high friction on the ground or something like that.
 
         // Shift
         if (inputState.walk && player.collisionBox.inGround) force *= 0.2f
@@ -226,16 +233,17 @@ class Server {
         player.collisionBox.applyForce(velVector)
 
         // Jump
-        if (inputState.jump && player.collisionBox.inGround) {
-            player.collisionBox.applyForce(Vector3f(0f, force, 0f))
+        if (inputState.jump && System.currentTimeMillis() - lastJump > 1000) {
+            lastJump = System.currentTimeMillis()
+            player.collisionBox.applyForce(Vector3f(0f, force * 3f * deltaSec, 0f))
         }
 
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 2.0f
+            val shotForce = 200.0f
             val frontPos = 1.2f
-            addBox(Box(
+            val box = Box(
                 id = generateId(),
                 mass = 1f,
                 position = player.collisionBox.position + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
@@ -243,9 +251,9 @@ class Server {
                 textureId = Textures.RUBIK_ID,
                 textureMultiplier = 0.01,
                 bounceMultiplier = 0.8f
-            ).apply {
-                applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
-            })
+            )
+            addBox(box)
+            box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
         }
     }
 
@@ -264,14 +272,14 @@ class Server {
     }
 
     private fun addBox(box: Box) {
-        physics.boxes += box
+        physics.register(box)
         boxes.add(box)
         network.broadcast(buildStreamBoxMsg(box))
     }
 
     private fun removeBox(box: Box) {
         if (box in boxes) {
-            physics.boxes -= box
+            physics.unRegister(box)
             boxes.remove(box)
         }
     }
