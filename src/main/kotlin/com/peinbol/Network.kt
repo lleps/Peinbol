@@ -2,7 +2,6 @@ package com.peinbol
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.buffer.ByteBuf
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
@@ -33,16 +32,16 @@ class Network {
     /** Network client implementation. */
     class Client(val host: String, val port: Int) {
 
-        /** This handler decode bytes into messages, and push them to the queue. */
+        /** This handler decodes MessageWrapper instances into the message objects, and push them to the queue. */
         private inner class ClientNetworkHandler : ChannelInboundHandlerAdapter() {
             override fun channelRead(ctx: ChannelHandlerContext, msgRaw: Any) {
-                val buf = msgRaw as ByteBuf // (1)
+                val nettyMsg = msgRaw as Messages.MessageWrapper
 
                 try {
-                    val msg = Messages.receive(buf)
+                    val msg = Messages.receive(nettyMsg)
                     messagesQueue.add(msg)
                 } finally {
-                    buf.release()
+                    nettyMsg.buf.release()
                 }
             }
 
@@ -130,7 +129,7 @@ class Network {
     enum class EventType { CONNECT, DISCONNECT, MESSAGE }
     class EnqueuedEvent(val type: EventType, val connection: PlayerConnection, val message: Any? = null)
 
-    /** This handler pushes events to [queue], decoded from the byte buffer. */
+    /** This handler pushes events to [queue], decoded from the given message wrappers. */
     class PlayerConnection(val channel: Channel, val queue: Queue<EnqueuedEvent>)  : ChannelInboundHandlerAdapter() {
         override fun channelActive(ctx: ChannelHandlerContext) {
             queue.offer(EnqueuedEvent(EventType.CONNECT, this))
@@ -141,12 +140,12 @@ class Network {
         }
 
         override fun channelRead(ctx: ChannelHandlerContext, rawMsg: Any) {
-            val buf = rawMsg as ByteBuf
+            val wrapper = rawMsg as Messages.MessageWrapper
             try {
-                val msg = Messages.receive(buf)
+                val msg = Messages.receive(wrapper)
                 queue.offer(EnqueuedEvent(EventType.MESSAGE, this, msg))
             } finally {
-                buf.release()
+                wrapper.buf.release()
             }
         }
 
@@ -184,7 +183,7 @@ class Network {
                             @Throws(Exception::class)
                             public override fun initChannel(ch: SocketChannel) {
                                 val connection = PlayerConnection(ch, eventsQueue)
-                                ch.pipeline().addLast(Messages.MessagesDecoder(), connection) // TODO add right connection
+                                ch.pipeline().addLast(Messages.MessagesDecoder(), connection)
                             }
                         })
                         .option(ChannelOption.SO_BACKLOG, 128)

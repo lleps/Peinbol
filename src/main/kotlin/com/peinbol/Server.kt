@@ -1,5 +1,6 @@
 package com.peinbol
 
+import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 
 /**
@@ -38,7 +39,7 @@ class Server {
         network.onClientMessage { client, message -> handleClientMessage(client, message) }
 
         println("Init main thread...")
-        physics = Physics()
+        physics = Physics(Physics.Mode.SERVER)
         physics.init()
         generateWorld()
         var lastPhysicsSimulate = System.currentTimeMillis()
@@ -50,12 +51,12 @@ class Server {
             for (player in playersByConnections.values) {
                 updatePlayer(player, player.inputState, delta)
             }
-            physics.simulate(delta.toDouble())
-            if (System.currentTimeMillis() - lastBroadcast > 10) {
+            physics.simulate(delta.toDouble(), true)
+            if (System.currentTimeMillis() - lastBroadcast > 16) {
                 broadcastCurrentWorldState()
                 lastBroadcast = System.currentTimeMillis()
             }
-            Thread.sleep(16)
+            Thread.sleep(8)
         }
     }
 
@@ -145,6 +146,7 @@ class Server {
                     if (axis == 0) length else 1f
                 ),
                 affectedByPhysics = false,
+                mass = 0f,
                 textureId = Textures.METAL_ID,
                 textureMultiplier = 35.0
             ))
@@ -154,12 +156,15 @@ class Server {
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
         for (box in boxes) {
-            network.broadcast(Messages.BoxUpdateMotion(
-                id = box.id,
-                position = box.position,
-                velocity = box.velocity,
-                angularVelocity = box.angularVelocity
-            ))
+            if (box.rigidBody!!.isActive) {
+                network.broadcast(Messages.BoxUpdateMotion(
+                    id = box.id,
+                    position = box.position,
+                    linearVelocity = box.linearVelocity,
+                    angularVelocity = box.angularVelocity,
+                    rotation = box.rotation
+                ))
+            }
         }
     }
 
@@ -169,7 +174,7 @@ class Server {
         // build box
         val playerBox = Box(
             id = generateId(),
-            mass = 60f,
+            mass = 30f,
             position = Vector3f(
                 randBetween(-20, 20).toFloat(),
                 10f,
@@ -181,7 +186,7 @@ class Server {
                 1f
             ),
             textureId = Textures.METAL_ID,
-            affectedByPhysics = true,
+            affectedByPhysics = false,
             bounceMultiplier = 0.0f,
             textureMultiplier = 0.01
         )
@@ -217,12 +222,14 @@ class Server {
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
         val deltaSec = delta / 1000f
-        var force = 5000f
+        var force = 200f
 
         // TODO: find a way to balance this, and set a high friction on the ground or something like that.
 
         // Shift
         if (inputState.walk && player.collisionBox.inGround) force *= 0.2f
+
+        player.collisionBox.rotation = Quat4f(0f, 0f, 0f, 1f)
 
         // W,A,S,D
         var velVector = Vector3f()
@@ -241,7 +248,7 @@ class Server {
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 200.0f
+            val shotForce = 30.0f
             val frontPos = 1.2f
             val box = Box(
                 id = generateId(),
@@ -262,7 +269,7 @@ class Server {
             id = box.id,
             position = box.position,
             size = box.size,
-            velocity = box.velocity,
+            velocity = box.linearVelocity,
             mass = box.mass,
             affectedByPhysics = box.affectedByPhysics,
             textureId = box.textureId,

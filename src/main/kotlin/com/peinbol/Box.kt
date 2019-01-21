@@ -9,65 +9,68 @@ import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 
 class Box(
-    var id: Int = 0,
-    var position: Vector3f = Vector3f(),
+    val id: Int = 0,
+    position: Vector3f = Vector3f(),
     val size: Vector3f = Vector3f(),
-    var velocity: Vector3f = Vector3f(),
-    var angularVelocity: Vector3f = Vector3f(),
+    linearVelocity: Vector3f = Vector3f(),
+    angularVelocity: Vector3f = Vector3f(),
+    rotation: Quat4f = Quat4f(0f, 0f, 0f, 1f),
     val mass: Float = 0f,
     val theColor: Color4f = Color4f(1f, 1f, 1f, 1f),
-    var affectedByPhysics: Boolean = true,
-    var inGround: Boolean = false,
+    var affectedByPhysics: Boolean = true, // not useful, as mass 0 equals "static object".
+    var inGround: Boolean = false, // set by physics to true if velocity y is close to zero
     val textureId: Int = Textures.METAL_ID,
-    var textureMultiplier: Double = 1.0,
-    var bounceMultiplier: Float = 0f
+    val textureMultiplier: Double = 1.0,
+    val bounceMultiplier: Float = 0f
 ) {
+    var position: Vector3f = position
+        set(value) {
+            if (!syncing) {
+                val body = rigidBody!!
+                val transform = Transform()
+                val rotation = Quat4f()
+                body.motionState.getWorldTransform(transform).getRotation(rotation)
+                body.motionState = DefaultMotionState(Transform(Matrix4f(rotation.get(), position.get(), 1f)))
+            }
+            field = value.get()
+        }
 
-    // TODO: update setters for position, velocity, angularVelocity
-    // TODO: rename velocity to linearVelocity
-    // TODO: single method update, to pass various parameters and build the motionstate only once (for client updates)
+    var linearVelocity: Vector3f = linearVelocity
+        set(value) {
+            if (!syncing) {
+                val body = rigidBody!!
+                body.setLinearVelocity(value.get())
+            }
+            field = value.get()
+        }
+
+    var angularVelocity: Vector3f = angularVelocity
+        set(value) {
+            if (!syncing) {
+                val body = rigidBody!!
+                body.setAngularVelocity(value.get())
+            }
+            field = value.get()
+        }
+
+    var syncing = false
+
+    var rotation: Quat4f = rotation
+        set(value) {
+            if (!syncing) {
+                val body = rigidBody!!
+                val transform = Transform()
+                val origin = body.motionState.getWorldTransform(transform).origin
+                body.motionState = DefaultMotionState(Transform(Matrix4f(value.get(), origin.get(), 1f)))
+            }
+            field = value.get()
+        }
+
+    /** Reference to bullet physics body. Read by Window to get rotation, and set by Physics.register. */
+    var rigidBody: RigidBody? = null
 
     fun applyForce(force: Vector3f) {
+        rigidBody!!.activate()
         rigidBody!!.applyCentralImpulse(force)
     }
-
-    fun readPosition(): Vector3f {
-        val body = rigidBody!!
-        val transform = Transform()
-        val origin = body.motionState.getWorldTransform(transform).origin
-        this.position = origin
-        return position
-    }
-
-    fun updatePosition(position: Vector3f) {
-        val body = rigidBody!!
-        val transform = Transform()
-        val rotation = Quat4f()
-        body.motionState.getWorldTransform(transform).getRotation(rotation)
-        body.motionState = DefaultMotionState(Transform(Matrix4f(rotation, position, 1f)))
-        this.position = position.get()
-    }
-
-    fun readLinearVelocity(): Vector3f {
-        val result = Vector3f()
-        val body = rigidBody!!
-        body.getLinearVelocity(result)
-        this.velocity = result
-        return result
-    }
-
-    fun updateLinearVelocity(velocity: Vector3f) {
-        val body = rigidBody!!
-        body.setLinearVelocity(velocity.get())
-        this.velocity = velocity.get()
-    }
-
-    fun updateAngularVelocity(velocity: Vector3f) {
-        val body = rigidBody!!
-        body.setAngularVelocity(velocity.get())
-        this.angularVelocity = velocity.get()
-    }
-
-    /** Reference to bullet physics body */
-    var rigidBody: RigidBody? = null
 }

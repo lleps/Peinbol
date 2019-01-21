@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
+import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 import kotlin.reflect.KClass
 
@@ -34,26 +35,24 @@ object Messages {
         registerMessageType(3, BoxUpdateMotion, BoxUpdateMotion::class)
     }
 
+    /** Wraps the message ID and their body */
+    class MessageWrapper(val id: Int, val buf: ByteBuf)
+
     /** Decoder to make messages processed properly, in chunks of message-size */
     class MessagesDecoder : ReplayingDecoder<Void>() {
         override fun decode(ctx: ChannelHandlerContext, inBuf: ByteBuf, out: MutableList<Any>) {
-            // TODO: ensure there ain't leaks
             val typeId = inBuf.readInt()
-            val type = messageTypes[typeId] ?: error("invalid typeId on decode: $typeId")
+            val type = messageTypes[typeId] ?: return//error("invalid typeId on decode: $typeId")
             val msgByteCount = type.bytes
-            val payload = inBuf.readBytes(msgByteCount)
-            val newBuf = ctx.alloc().buffer(4 + msgByteCount)
-            newBuf.writeInt(typeId)
-            newBuf.writeBytes(payload)
-            out.add(newBuf)
+            out.add(MessageWrapper(typeId, inBuf.readBytes(msgByteCount)))
         }
     }
 
-    /** Read a message from the given buffer. */
-    fun receive(buf: ByteBuf): Any {
-        val typeId = buf.readInt()
+    /** Read a message from the given MessageWrapper. */
+    fun receive(wrapper: MessageWrapper): Any {
+        val typeId = wrapper.id
         val type = messageTypes[typeId] ?: error("invalid typeId on receive: $typeId")
-        return type.read(buf)
+        return type.read(wrapper.buf)
     }
 
     /** Send a message to the given channel */
@@ -65,13 +64,12 @@ object Messages {
         buf.writeInt(typeId)
         type.write(obj, buf)
         channel.writeAndFlush(buf)
-        // TODO: ensure there ain't leaks
     }
 
     // Messages
 
     /** Encapsulate a player's key state on a given moment */
-    class InputState(
+    data class InputState(
         val forward: Boolean = false, // 1
         val backwards: Boolean = false, // 1
         val left: Boolean = false, // 1
@@ -142,9 +140,19 @@ object Messages {
         return Vector3f(readFloat(), readFloat(), readFloat())
     }
 
-    // TODO: add quaternion, and functions to (de)serialize it
+    private fun ByteBuf.writeQuat4f(quat: Quat4f) {
+        writeFloat(quat.x)
+        writeFloat(quat.y)
+        writeFloat(quat.z)
+        writeFloat(quat.w)
+    }
+
+    private fun ByteBuf.readQuat4f(): Quat4f {
+        return Quat4f(readFloat(), readFloat(), readFloat(), readFloat())
+    }
 
     /** Add some box to the world. */
+    // TODO: add quat to boxAdded
     class BoxAdded(
         val id: Int, // 4
         val position: Vector3f, // 4*3
@@ -188,23 +196,24 @@ object Messages {
         }
     }
 
-    // TODO: add quaternion
     /** Update box movement */
     class BoxUpdateMotion(
         val id: Int, // 4
         val position: Vector3f, // 4*3
-        val velocity: Vector3f, // 4*3
-        val angularVelocity: Vector3f // 4*3
+        val linearVelocity: Vector3f, // 4*3
+        val angularVelocity: Vector3f, // 4*3
+        val rotation: Quat4f // 4*4
     ) {
         companion object : MessageType<BoxUpdateMotion> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)+(4*3)
+                get() = 4+(4*3)+(4*3)+(4*3)+(4*4)
 
             override fun write(msg: BoxUpdateMotion, buf: ByteBuf) {
                 buf.writeInt(msg.id)
                 buf.writeVector3f(msg.position)
-                buf.writeVector3f(msg.velocity)
+                buf.writeVector3f(msg.linearVelocity)
                 buf.writeVector3f(msg.angularVelocity)
+                buf.writeQuat4f(msg.rotation)
             }
 
             override fun read(buf: ByteBuf): BoxUpdateMotion {
@@ -212,7 +221,8 @@ object Messages {
                     buf.readInt(),
                     buf.readVector3f(),
                     buf.readVector3f(),
-                    buf.readVector3f()
+                    buf.readVector3f(),
+                    buf.readQuat4f()
                 )
             }
         }

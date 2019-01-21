@@ -88,7 +88,7 @@ class Window(val width: Int = 800, val height: Int = 600) {
 
             glfwSetWindowPos(
                 window,
-                (vidmode.width() - pWidth.get(0)) / 2,
+                (vidmode!!.width() - pWidth.get(0)) / 2,
                 (vidmode.height() - pHeight.get(0)) / 2
             )
         }
@@ -228,7 +228,7 @@ class Window(val width: Int = 800, val height: Int = 600) {
         glfwFreeCallbacks(window)
         glfwDestroyWindow(window)
         glfwTerminate()
-        glfwSetErrorCallback(null).free()
+        glfwSetErrorCallback(null)!!.free()
     }
 
 }

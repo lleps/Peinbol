@@ -1,8 +1,6 @@
 package com.peinbol
 
 import org.lwjgl.glfw.GLFW.*
-import javax.vecmath.Vector3f
-import kotlin.concurrent.thread
 
 /**
  * Peinbol game client. Essentially, draw what the server says.
@@ -41,7 +39,7 @@ class Game {
         window.init()
         txts // init txts variable when opengl is already loaded, otherwise jvm crash
         window.centerCursor()
-        physics = Physics()
+        physics = Physics(Physics.Mode.CLIENT)
         physics.init()
 
         var lastFrame = System.currentTimeMillis()
@@ -52,7 +50,7 @@ class Game {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta.toFloat())
-            physics.simulate(delta.toDouble())
+            physics.simulate(delta.toDouble(), false)
             window.centerCursor()
             window.draw()
         }
@@ -75,7 +73,7 @@ class Game {
                     id = msg.id,
                     position = msg.position,
                     size = msg.size,
-                    velocity = msg.velocity,
+                    linearVelocity = msg.velocity,
                     mass = msg.mass,
                     affectedByPhysics = msg.affectedByPhysics,
                     textureId = msg.textureId,
@@ -87,10 +85,10 @@ class Game {
             is Messages.BoxUpdateMotion -> {
                 val box = boxes[msg.id]
                 if (box != null) {
-                    box.updatePosition(msg.position)
-                    box.updateLinearVelocity(msg.velocity)
-                    box.updateAngularVelocity(msg.angularVelocity)
-                    // TODO: fetch quaternion also.
+                    box.rotation = msg.rotation
+                    box.position = msg.position
+                    box.linearVelocity = msg.linearVelocity
+                    box.angularVelocity = msg.angularVelocity
                 } else {
                     println("Can't find box for id ${msg.id}")
                 }
