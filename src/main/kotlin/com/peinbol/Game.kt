@@ -44,12 +44,12 @@ class Game {
 
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-            val deltaMoveX = window.mouseX - 100.0 // since was centered on last frame, get how much moved since then
-            val deltaMoveY = window.mouseY - 100.0
+            val deltaMoveX = window.mouseX - 100f // since was centered on last frame, get how much moved since then
+            val deltaMoveY = window.mouseY - 100f
             val delta = System.currentTimeMillis() - lastFrame
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
-            update(window, deltaMoveX, deltaMoveY, delta.toDouble())
+            update(window, deltaMoveX, deltaMoveY, delta.toFloat())
             physics.simulate(delta.toDouble())
             window.centerCursor()
             window.draw()
@@ -71,9 +71,10 @@ class Game {
             is Messages.BoxAdded -> {
                 val box = Box(
                     id = msg.id,
-                    x = msg.x, y = msg.y, z = msg.z,
-                    sx = msg.sx, sy = msg.sy, sz = msg.sz,
-                    vx = msg.vx, vy = msg.vy, vz = msg.vz,
+                    position = msg.position,
+                    size = msg.size,
+                    velocity = msg.velocity,
+                    mass = msg.mass,
                     affectedByPhysics = msg.affectedByPhysics,
                     textureId = msg.textureId,
                     textureMultiplier = msg.textureMultiplier,
@@ -84,12 +85,8 @@ class Game {
             is Messages.BoxUpdateMotion -> {
                 val box = boxes[msg.id]
                 if (box != null) {
-                    box.x = msg.x
-                    box.y = msg.y
-                    box.z = msg.z
-                    box.vx = msg.vx
-                    box.vy = msg.vy
-                    box.vz = msg.vz
+                    box.position = msg.position
+                    box.velocity = msg.velocity
                 } else {
                     println("Can't find box for id ${msg.id}")
                 }
@@ -98,17 +95,17 @@ class Game {
     }
 
     /** Send input state if appropiate, and update camera pos */
-    private fun update(window: Window, mouseDX: Double, mouseDY: Double, delta: Double) {
+    private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Float) {
         // sync camera pos (and delta). Pos is synced with myBoxId
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            window.cameraPosX = playerBox.x
-            window.cameraPosY = playerBox.y + 0.8
-            window.cameraPosZ = playerBox.z
+            window.cameraPosX = playerBox.position.x
+            window.cameraPosY = playerBox.position.y + 0.8f
+            window.cameraPosZ = playerBox.position.z
         }
 
-        window.cameraRotX -= mouseDY * 0.4
-        window.cameraRotY -= mouseDX * 0.4
+        window.cameraRotX -= mouseDY * 0.4f
+        window.cameraRotY -= mouseDX * 0.4f
 
         // send input state
         if (System.currentTimeMillis() - lastInputStateSent > INPUT_SYNC_RATE) {

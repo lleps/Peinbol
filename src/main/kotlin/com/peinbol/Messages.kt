@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
+import javax.vecmath.Vector3f
 import kotlin.reflect.KClass
 
 
@@ -76,12 +77,12 @@ object Messages {
         val fire: Boolean = false, // 1
         val jump: Boolean = false, // 1
         val walk: Boolean = false, // 1
-        val cameraX: Double = 0.0, // 8
-        val cameraY: Double = 0.0 // 8
+        val cameraX: Float = 0f, // 4
+        val cameraY: Float = 0f // 4
     ) {
         companion object : MessageType<InputState> {
             override val bytes: Int
-                get() = (1*7) + (8*2)
+                get() = (1*7) + (4*2)
 
             override fun write(msg: InputState, buf: ByteBuf) {
                 buf.writeBoolean(msg.forward)
@@ -91,8 +92,8 @@ object Messages {
                 buf.writeBoolean(msg.fire)
                 buf.writeBoolean(msg.jump)
                 buf.writeBoolean(msg.walk)
-                buf.writeDouble(msg.cameraX)
-                buf.writeDouble(msg.cameraY)
+                buf.writeFloat(msg.cameraX)
+                buf.writeFloat(msg.cameraY)
             }
 
             override fun read(buf: ByteBuf): InputState {
@@ -104,8 +105,8 @@ object Messages {
                     buf.readBoolean(),
                     buf.readBoolean(),
                     buf.readBoolean(),
-                    buf.readDouble(),
-                    buf.readDouble()
+                    buf.readFloat(),
+                    buf.readFloat()
                 )
             }
         }
@@ -129,54 +130,55 @@ object Messages {
         }
     }
 
+    private fun ByteBuf.writeVector3f(vector: Vector3f) {
+        writeFloat(vector.x)
+        writeFloat(vector.y)
+        writeFloat(vector.z)
+    }
+
+    private fun ByteBuf.readVector3f(): Vector3f {
+        return Vector3f(readFloat(), readFloat(), readFloat())
+    }
+
     /** Add some box to the world. */
     class BoxAdded(
         val id: Int, // 4
-        val x: Double, val y: Double, val z: Double, // 8*3
-        val sx: Double, val sy: Double, val sz: Double, // 8*3
-        val vx: Double, val vy: Double, val vz: Double, // 8*3
+        val position: Vector3f, // 4*3
+        val size: Vector3f, // 4*3
+        val velocity: Vector3f, // 4*3
+        val mass: Float, // 4
         val affectedByPhysics: Boolean, // 1
         val textureId: Int, // 4
         val textureMultiplier: Double, // 8
-        val bounceMultiplier: Double // 8
+        val bounceMultiplier: Float // 4
     ) {
         companion object : MessageType<BoxAdded> {
             override val bytes: Int
-                get() = 4+(8*3)+(8*3)+(8*3)+1+4+8+8
+                get() = 4+(4*3)+(4*3)+(4*3)+4+1+4+8+4
 
             override fun write(msg: BoxAdded, buf: ByteBuf) {
                 buf.writeInt(msg.id)
-                buf.writeDouble(msg.x)
-                buf.writeDouble(msg.y)
-                buf.writeDouble(msg.z)
-                buf.writeDouble(msg.sx)
-                buf.writeDouble(msg.sy)
-                buf.writeDouble(msg.sz)
-                buf.writeDouble(msg.vx)
-                buf.writeDouble(msg.vy)
-                buf.writeDouble(msg.vz)
+                buf.writeVector3f(msg.position)
+                buf.writeVector3f(msg.size)
+                buf.writeVector3f(msg.velocity)
+                buf.writeFloat(msg.mass)
                 buf.writeBoolean(msg.affectedByPhysics)
                 buf.writeInt(msg.textureId)
                 buf.writeDouble(msg.textureMultiplier)
-                buf.writeDouble(msg.bounceMultiplier)
+                buf.writeFloat(msg.bounceMultiplier)
             }
 
             override fun read(buf: ByteBuf): BoxAdded {
                 return BoxAdded(
                     buf.readInt(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
+                    buf.readVector3f(),
+                    buf.readVector3f(),
+                    buf.readVector3f(),
+                    buf.readFloat(),
                     buf.readBoolean(),
                     buf.readInt(),
                     buf.readDouble(),
-                    buf.readDouble()
+                    buf.readFloat()
                 )
             }
         }
@@ -185,32 +187,24 @@ object Messages {
     /** Update box movement */
     class BoxUpdateMotion(
         val id: Int, // 4
-        val x: Double, val y: Double, val z: Double, // 8*3
-        val vx: Double, val vy: Double, val vz: Double // 8*3
+        val position: Vector3f, // 4*3
+        val velocity: Vector3f // 4*3
     ) {
         companion object : MessageType<BoxUpdateMotion> {
             override val bytes: Int
-                get() = 4+(8*3)+(8*3)
+                get() = 4+(4*3)+(4*3)
 
             override fun write(msg: BoxUpdateMotion, buf: ByteBuf) {
                 buf.writeInt(msg.id)
-                buf.writeDouble(msg.x)
-                buf.writeDouble(msg.y)
-                buf.writeDouble(msg.z)
-                buf.writeDouble(msg.vx)
-                buf.writeDouble(msg.vy)
-                buf.writeDouble(msg.vz)
+                buf.writeVector3f(msg.position)
+                buf.writeVector3f(msg.velocity)
             }
 
             override fun read(buf: ByteBuf): BoxUpdateMotion {
                 return BoxUpdateMotion(
                     buf.readInt(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble(),
-                    buf.readDouble()
+                    buf.readVector3f(),
+                    buf.readVector3f()
                 )
             }
         }

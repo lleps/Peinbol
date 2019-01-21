@@ -7,45 +7,47 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
+import javax.vecmath.Color3f
+import javax.vecmath.Color4f
 
 class Window(val width: Int = 800, val height: Int = 600) {
     var boxes: List<Box> = emptyList()
 
-    var cameraPosX = 0.0
-    var cameraPosY = 0.0
-    var cameraPosZ = 0.0
+    var cameraPosX = 0f
+    var cameraPosY = 0f
+    var cameraPosZ = 0f
 
-    var cameraRotX = 0.0
+    var cameraRotX = 0f
         set(value) {
-            field = value.coerceIn(-85.0, 85.0) % 360.0
+            field = value.coerceIn(-85f, 85f) % 360f
         }
 
-    var cameraRotY = 0.0
+    var cameraRotY = 0f
         set(value) {
-            field = value % 360.0
+            field = value % 360f
         }
 
-    var cameraRotZ = 0.0
+    var cameraRotZ = 0f
         set(value) {
-            field = value % 360.0
+            field = value % 360f
         }
 
     private var window: Long = 0
 
-    val mouseX: Double
+    val mouseX: Float
         get() {
             val buffX = doubleArrayOf(0.0)
             val buffY = doubleArrayOf(0.0)
             glfwGetCursorPos(window, buffX, buffY)
-            return buffX[0]
+            return buffX[0].toFloat()
         }
 
-    val mouseY: Double
+    val mouseY: Float
         get() {
             val buffX = doubleArrayOf(0.0)
             val buffY = doubleArrayOf(0.0)
             glfwGetCursorPos(window, buffX, buffY)
-            return buffY[0]
+            return buffY[0].toFloat()
         }
 
     private val textures = mutableMapOf<Int, Texture>()
@@ -120,20 +122,12 @@ class Window(val width: Int = 800, val height: Int = 600) {
 
     fun draw() {
         glEnable(GL_TEXTURE_2D)
-
-        val u = -1f
-        val v = -1f
-        val w = -1f
-        val u2 = 1f
-        val v2 = 1f
-        val w2 = 1f
-
-        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glRotated(-cameraRotX, 1.0, 0.0, 0.0)
-        glRotated(-cameraRotY, 0.0, 1.0, 0.0)
-        glRotated(-cameraRotZ, 0.0, 0.0, 1.0)
-        glTranslated(-cameraPosX, -cameraPosY, -cameraPosZ)
+        glRotatef(-cameraRotX, 1f, 0f, 0f)
+        glRotatef(-cameraRotY, 0f, 1f, 0f)
+        glRotatef(-cameraRotZ, 0f, 0f, 1f)
+        glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         val skyColor = Color(152.0/255.0, 209.0/255.0, 214.0/255.0)
         glClearColor(
@@ -147,11 +141,12 @@ class Window(val width: Int = 800, val height: Int = 600) {
         for (box in boxes) {
             textures[box.textureId]?.bind()
 
-            glColor3d(box.color.r * ambientLight, box.color.g * ambientLight, box.color.b * ambientLight)
+            // TODO: based on box size, keep the texture relation to 1/1
+            glColor3f(box.theColor.x * ambientLight, box.theColor.y * ambientLight, box.theColor.z * ambientLight)
 
             glPushMatrix()
-            glTranslated(box.x, box.y, box.z)
-            glScaled(box.sx / 2.0, box.sy / 2.0, box.sz / 2.0)
+            glTranslatef(box.position.x, box.position.y, box.position.z)
+            glScalef(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
             glBegin(GL_QUADS)
             val top = box.textureMultiplier
             glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0,  1.0)
@@ -178,7 +173,6 @@ class Window(val width: Int = 800, val height: Int = 600) {
             glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0,  1.0)
             glTexCoord2d(top, top); glVertex3d(-1.0,  1.0,  1.0)
             glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0, -1.0)
-
             glEnd()
             glPopMatrix()
         }

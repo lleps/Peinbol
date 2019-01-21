@@ -1,5 +1,7 @@
 package com.peinbol
 
+import javax.vecmath.Vector3f
+
 /**
  * The server should be responsible of:
  * - Accepting connections
@@ -61,12 +63,13 @@ class Server {
         for (i in 0..20) {
             val box = Box(
                 id = generateId(),
-                x = randBetween(-40, 40).toDouble(),
-                y = randBetween(-5, 5).toDouble(),
-                z = randBetween(-40, 40).toDouble(),
-                sx = 1.0,
-                sy = 1.0,
-                sz = 1.0,
+                mass = 1f,
+                position = Vector3f(
+                    randBetween(-40, 40).toFloat(),
+                    randBetween(-5, 5).toFloat(),
+                    randBetween(-40, 40).toFloat()
+                ),
+                size = Vector3f(1f, 1f, 1f),
                 textureId = listOf(
                     Textures.CLOTH_ID,
                     Textures.METAL_ID,
@@ -82,8 +85,8 @@ class Server {
         // build base
         val base = Box(
             id = generateId(),
-            x = 0.0, y = -50.0, z = 0.0,
-            sx = 100.0, sy = 1.0, sz = 100.0,
+            position = Vector3f(0f, -50f, 0f),
+            size = Vector3f(100f, 1f, 100f),
             affectedByPhysics = false,
             textureId = Textures.WOOD_ID,
             textureMultiplier = 50.0
@@ -93,32 +96,32 @@ class Server {
         // build 4 walls
         addBox(Box(
             id = generateId(),
-            x = -50.0, y = -45.0, z = 0.0,
-            sx = 2.0, sy = 10.0, sz = 100.0,
+            position = Vector3f(-50f, -45f, 0f),
+            size = Vector3f(2f, 10f, 100f),
             affectedByPhysics = false,
             textureId = Textures.METAL_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
             id = generateId(),
-            x = 50.0, y = -45.0, z = 0.0,
-            sx = 2.0, sy = 10.0, sz = 100.0,
+            position = Vector3f(50f, -45f, 0f),
+            size = Vector3f(2f, 10f, 100f),
             affectedByPhysics = false,
             textureId = Textures.METAL_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
             id = generateId(),
-            x = 0.0, y = -45.0, z = -50.0,
-            sx = 100.0, sy = 10.0, sz = 2.0,
+            position = Vector3f(0f, -45f, -50f),
+            size = Vector3f(100f, 10f, 2f),
             affectedByPhysics = false,
             textureId = Textures.METAL_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
             id = generateId(),
-            x = 0.0, y = -45.0, z = 50.0,
-            sx = 100.0, sy = 10.0, sz = 2.0,
+            position = Vector3f(0f, -45f, 50f),
+            size = Vector3f(100f, 10f, 2f),
             affectedByPhysics = false,
             textureId = Textures.METAL_ID,
             textureMultiplier = 35.0
@@ -126,12 +129,20 @@ class Server {
 
         // some random walls
         for (i in 0..randBetween(10, 100)) {
-            val length = randBetween(5, 10).toDouble()
+            val length = randBetween(5, 10).toFloat()
             val axis = randBetween(0, 2)
             addBox(Box(
                 id = generateId(),
-                x = randBetween(-50, 50).toDouble(), y = -45.0, z = randBetween(-50, 50).toDouble(),
-                sx = if (axis == 0) 1.0 else length, sy = 10.0, sz = if (axis == 0) length else 1.0,
+                position = Vector3f(
+                    randBetween(-50, 50).toFloat(),
+                    -45f,
+                    randBetween(-50, 50).toFloat()
+                ),
+                size = Vector3f(
+                    if (axis == 0) 1f else length,
+                    10f,
+                    if (axis == 0) length else 1f
+                ),
                 affectedByPhysics = false,
                 textureId = Textures.METAL_ID,
                 textureMultiplier = 35.0
@@ -139,21 +150,13 @@ class Server {
         }
     }
 
-    // 2 cool things.
-    // 1. make time and texures multiplied by it. find some color (i.e some sky col) and start adding black to it... multiply obj color to it
-    // 2. better textures: use grass and. use good perspective on them...
-
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
-        for (box in boxes) { // TODO update only moved boxes
+        for (box in boxes) {
             network.broadcast(Messages.BoxUpdateMotion(
                 id = box.id,
-                x = box.x,
-                y = box.y,
-                z = box.z,
-                vx = box.vx,
-                vy = box.vy,
-                vz = box.vz
+                position = box.position,
+                velocity = box.velocity
             ))
         }
     }
@@ -164,15 +167,20 @@ class Server {
         // build box
         val playerBox = Box(
             id = generateId(),
-            x = randBetween(-20, 20).toDouble(),
-            y = 10.0,
-            z = randBetween(-20, 20).toDouble(),
-            sx = 0.5,
-            sy = 2.0,
-            sz = 0.5,
+            mass = 60f,
+            position = Vector3f(
+                randBetween(-20, 20).toFloat(),
+                10f,
+                randBetween(-20, 20).toFloat()
+            ),
+            size = Vector3f(
+                1f,
+                2f,
+                1f
+            ),
             textureId = Textures.METAL_ID,
             affectedByPhysics = true,
-            bounceMultiplier = 0.0,
+            bounceMultiplier = 0.0f,
             textureMultiplier = 0.01
         )
         addBox(playerBox)
@@ -203,66 +211,51 @@ class Server {
 
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
-        val deltaSec = delta / 1000.0
-        var speed = 1.0
+        val deltaSec = delta / 1000f
+        var force = 50f
 
-        if (!player.collisionBox.inGround) speed *= 0.8
-        if (inputState.walk && player.collisionBox.inGround) speed = 0.2
+        // Shift
+        if (inputState.walk && player.collisionBox.inGround) force *= 0.2f
 
-        if (inputState.forward) {
-            player.collisionBox.vx -= Math.sin(Math.toRadians(inputState.cameraY)) * speed * deltaSec
-            player.collisionBox.vz -= Math.cos(Math.toRadians(inputState.cameraY)) * speed * deltaSec
-        }
-        if (inputState.backwards) {
-            player.collisionBox.vx += Math.sin(Math.toRadians(inputState.cameraY)) * speed * deltaSec
-            player.collisionBox.vz += Math.cos(Math.toRadians(inputState.cameraY)) * speed * deltaSec
-        }
-        if (inputState.right) {
-            player.collisionBox.vx += Math.sin(Math.toRadians(inputState.cameraY + 90.0)) * speed * deltaSec
-            player.collisionBox.vz += Math.cos(Math.toRadians(inputState.cameraY + 90.0)) * speed * deltaSec
-        }
-        if (inputState.left) {
-            player.collisionBox.vx += Math.sin(Math.toRadians(inputState.cameraY - 90.0)) * speed * deltaSec
-            player.collisionBox.vz += Math.cos(Math.toRadians(inputState.cameraY - 90.0)) * speed * deltaSec
-        }
+        // W,A,S,D
+        var velVector = Vector3f()
+        if (inputState.forward) velVector += vectorFront(inputState.cameraY, 0f, force * deltaSec)
+        if (inputState.backwards) velVector -= vectorFront(inputState.cameraY, 0f, force * deltaSec)
+        if (inputState.right) velVector -= vectorFront(inputState.cameraY + 90f, 0f, force * deltaSec)
+        if (inputState.left) velVector -= vectorFront(inputState.cameraY - 90f, 0f, force * deltaSec)
+        player.collisionBox.applyForce(velVector)
 
+        // Jump
         if (inputState.jump && player.collisionBox.inGround) {
-            player.collisionBox.vy += 0.3
+            player.collisionBox.applyForce(Vector3f(0f, force, 0f))
         }
 
+        // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
             player.lastShot = System.currentTimeMillis()
-            val shotSpeed = 2.0
-            val frontPos = 0.6
-            val box = Box(
+            val shotForce = 2.0f
+            val frontPos = 1.2f
+            addBox(Box(
                 id = generateId(),
-                x = player.collisionBox.x + -Math.sin(Math.toRadians(inputState.cameraY)) * frontPos,
-                y = player.collisionBox.y,
-                z = player.collisionBox.z + -Math.cos(Math.toRadians(inputState.cameraY)) * frontPos,
-                sx = 0.2, sy = 0.2, sz = 0.2,
-                vx = -Math.sin(Math.toRadians(inputState.cameraY)) * shotSpeed,
-                vy = Math.sin(Math.toRadians(inputState.cameraX)) * shotSpeed,
-                vz = -Math.cos(Math.toRadians(inputState.cameraY)) * shotSpeed,
+                mass = 1f,
+                position = player.collisionBox.position + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
+                size = Vector3f(0.2f, 0.2f, 0.2f),
                 textureId = Textures.RUBIK_ID,
                 textureMultiplier = 0.01,
-                bounceMultiplier = 0.8
-            )
-            addBox(box)
+                bounceMultiplier = 0.8f
+            ).apply {
+                applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
+            })
         }
     }
 
     private fun buildStreamBoxMsg(box: Box): Messages.BoxAdded {
         return Messages.BoxAdded(
             id = box.id,
-            x = box.x,
-            y = box.y,
-            z = box.z,
-            sx = box.sx,
-            sy = box.sy,
-            sz = box.sz,
-            vx = box.vx,
-            vy = box.vy,
-            vz = box.vz,
+            position = box.position,
+            size = box.size,
+            velocity = box.velocity,
+            mass = box.mass,
             affectedByPhysics = box.affectedByPhysics,
             textureId = box.textureId,
             textureMultiplier = box.textureMultiplier,
@@ -280,7 +273,6 @@ class Server {
         if (box in boxes) {
             physics.boxes -= box
             boxes.remove(box)
-            // TODO we need a message to remove boxes!
         }
     }
 }
