@@ -49,7 +49,7 @@ class Game {
             val delta = System.currentTimeMillis() - lastFrame
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
-            update(window, deltaMoveX, deltaMoveY, delta.toFloat())
+            update(window, deltaMoveX, deltaMoveY, delta)
             physics.simulate(delta.toDouble(), false)
             window.centerCursor()
             window.draw()
@@ -58,6 +58,9 @@ class Game {
         network.close()
     }
 
+    var someRR = 0
+
+    private var lastBoxSync = System.currentTimeMillis()
     /** Called when a message from the server arrives. */
     private fun handleNetworkMessage(msg: Any) {
         when (msg) {
@@ -81,17 +84,23 @@ class Game {
                     textureId = msg.textureId,
                     textureMultiplier = msg.textureMultiplier,
                     bounceMultiplier = msg.bounceMultiplier,
-                    isSphere = msg.isSphere
+                    isSphere = msg.isSphere,
+                    isCharacter = msg.isCharacter
                 )
                 addBox(box)
             }
             is Messages.BoxUpdateMotion -> {
                 val box = boxes[msg.id]
                 if (box != null) {
-                    box.rotation = msg.rotation
-                    box.position = msg.position
-                    box.linearVelocity = msg.linearVelocity
-                    box.angularVelocity = msg.angularVelocity
+                    if (true) {//myBoxId == -1/* || (box.id != myBoxId) || System.currentTimeMillis() - lastBoxSync > 2000*/) {
+                        lastBoxSync = System.currentTimeMillis()
+                        // only sync from server other boxes, as my box is updated locally
+                        // TODO: for player box, only update motion if its far from my motion.
+                        box.rotation = msg.rotation
+                        box.position = msg.position
+                        box.linearVelocity = msg.linearVelocity
+                        box.angularVelocity = msg.angularVelocity
+                    }
                 } else {
                     println("Can't find box for id ${msg.id}")
                 }
@@ -108,7 +117,20 @@ class Game {
     private var lastCursorModeSwitch = System.currentTimeMillis()
 
     /** Send input state if appropiate, and update camera pos */
-    private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Float) {
+    private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
+        val inputState = Messages.InputState(
+            forward = window.isKeyPressed(GLFW_KEY_W),
+            backwards = window.isKeyPressed(GLFW_KEY_S),
+            left = window.isKeyPressed(GLFW_KEY_A),
+            right = window.isKeyPressed(GLFW_KEY_D),
+            fire = window.isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT),
+            jump = window.isKeyPressed(GLFW_KEY_SPACE),
+            walk = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT),
+            cameraX = window.cameraRotX,
+            cameraY = window.cameraRotY
+        )
+
+
         // sync camera pos (and delta). Pos is synced with myBoxId
         if (window.isKeyPressed(GLFW_KEY_U)) {
             if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
@@ -119,6 +141,7 @@ class Game {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
+            doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
             window.cameraPosZ = playerBox.position.z
@@ -130,17 +153,7 @@ class Game {
         // send input state
         if (System.currentTimeMillis() - lastInputStateSent > INPUT_SYNC_RATE) {
             lastInputStateSent = System.currentTimeMillis()
-            network.send(Messages.InputState(
-                forward = window.isKeyPressed(GLFW_KEY_W),
-                backwards = window.isKeyPressed(GLFW_KEY_S),
-                left = window.isKeyPressed(GLFW_KEY_A),
-                right = window.isKeyPressed(GLFW_KEY_D),
-                fire = window.isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT),
-                jump = window.isKeyPressed(GLFW_KEY_SPACE),
-                walk = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT),
-                cameraX = window.cameraRotX,
-                cameraY = window.cameraRotY
-            ))
+            network.send(inputState)
         }
     }
 

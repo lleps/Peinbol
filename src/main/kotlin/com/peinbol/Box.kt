@@ -22,7 +22,8 @@ class Box(
     val textureId: Int = Textures.METAL_ID,
     val textureMultiplier: Double = 1.0,
     val bounceMultiplier: Float = 0f,
-    val isSphere: Boolean = false
+    val isSphere: Boolean = false,
+    val isCharacter: Boolean = false
 ) {
     var position: Vector3f = position
         set(value) {

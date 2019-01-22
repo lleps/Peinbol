@@ -1,11 +1,13 @@
 package com.peinbol
 
+import com.bulletphysics.collision.broadphase.CollisionFilterGroups
 import com.bulletphysics.collision.broadphase.DbvtBroadphase
 import com.bulletphysics.collision.dispatch.CollisionDispatcher
 import com.bulletphysics.collision.dispatch.CollisionFlags
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration
 import com.bulletphysics.collision.dispatch.PairCachingGhostObject
 import com.bulletphysics.collision.shapes.BoxShape
+import com.bulletphysics.collision.shapes.CapsuleShape
 import com.bulletphysics.collision.shapes.SphereShape
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld
 import com.bulletphysics.dynamics.DynamicsWorld
@@ -18,6 +20,7 @@ import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Matrix4f
 import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
+import kotlin.experimental.or
 
 class Physics(
     private val mode: Mode,
@@ -50,11 +53,28 @@ class Physics(
     fun register(box: Box) {
         if (box in boxes) return
         boxes += box
-        val shape = if (!box.isSphere) {
-            BoxShape(box.size.withOps { scale(0.5f) })
-        } else {
+        /*if (box.isCharacter) {
+            val ghostObject = PairCachingGhostObject()
+            ghostObject.setWorldTransform(Transform(Matrix4f(Quat4f(0f, 0f, 0f, 1f), box.position.get(), 1f)))
+            val capsule = CapsuleShape(box.size.x/2f, box.size.y)
+            ghostObject.collisionShape = capsule
+            ghostObject.collisionFlags = CollisionFlags.CHARACTER_OBJECT
+            val character = KinematicCharacterController(ghostObject, capsule, 0.6f)
+            world.addCollisionObject(
+                ghostObject,
+                CollisionFilterGroups.CHARACTER_FILTER,
+                CollisionFilterGroups.DEFAULT_FILTER or CollisionFilterGroups.STATIC_FILTER
+            )
+            world.addAction(character)
+        }*/
+        val shape = if (box.isSphere) {
             SphereShape(box.size.x)
+        } else if (box.isCharacter) {
+            CapsuleShape(box.size.x/2f, box.size.y)
+        } else {
+            BoxShape(box.size.withOps { scale(0.5f) })
         }
+
         val inertia = Vector3f()
         shape.calculateLocalInertia(box.mass, inertia)
         val constructionInfo = if (box.affectedByPhysics) {
@@ -93,12 +113,12 @@ class Physics(
         box.rigidBody = null
     }
 
-    fun simulate(delta: Double, updateObjs: Boolean) {
+    fun simulate(delta: Double, updateObjs: Boolean, updateId: Int = -1) {
         world.stepSimulation(delta.toFloat() / 1000f)
         // now copy to the objects pos the real data
-        if (updateObjs) {
-            val transform = Transform()
-            for (box in boxes) {
+        val transform = Transform()
+        for (box in boxes) {
+            if (updateObjs || box.id == updateId) {
                 box.syncing = true
                 // copy to box the physics info
                 val rigidBody = box.rigidBody!!

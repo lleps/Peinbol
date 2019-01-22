@@ -165,11 +165,12 @@ object Messages {
         val textureId: Int, // 4
         val textureMultiplier: Double, // 8
         val bounceMultiplier: Float, // 4
-        val isSphere: Boolean // 1
+        val isSphere: Boolean, // 1
+        val isCharacter: Boolean // 1
     ) {
         companion object : MessageType<BoxAdded> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4+1
+                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4+1+1
 
             override fun write(msg: BoxAdded, buf: ByteBuf) {
                 buf.writeInt(msg.id)
@@ -184,6 +185,7 @@ object Messages {
                 buf.writeDouble(msg.textureMultiplier)
                 buf.writeFloat(msg.bounceMultiplier)
                 buf.writeBoolean(msg.isSphere)
+                buf.writeBoolean(msg.isCharacter)
             }
 
             override fun read(buf: ByteBuf): BoxAdded {
@@ -199,6 +201,7 @@ object Messages {
                     buf.readInt(),
                     buf.readDouble(),
                     buf.readFloat(),
+                    buf.readBoolean(),
                     buf.readBoolean()
                 )
             }

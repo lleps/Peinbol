@@ -1,6 +1,5 @@
 package com.peinbol
 
-import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 
 /**
@@ -190,7 +189,8 @@ class Server {
             textureId = Textures.METAL_ID,
             affectedByPhysics = false,
             bounceMultiplier = 0.0f,
-            textureMultiplier = 0.01
+            textureMultiplier = 0.01,
+            isCharacter = true
         )
         addBox(playerBox)
 
@@ -234,34 +234,13 @@ class Server {
 
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
-        val deltaSec = delta / 1000f
-        val force = 400f
-        val limit = if (inputState.walk && player.collisionBox.inGround) 1f else 4f
-        // TODO: find a way to balance this, and set a high friction on the ground or something like that.
-
-        player.collisionBox.rotation = Quat4f(0f, 0f, 0f, 1f)
-
-        // W,A,S,D
-        if (player.collisionBox.linearVelocity.length() < limit) {
-            var velVector = Vector3f()
-            if (inputState.forward) velVector += vectorFront(inputState.cameraY, 0f, force * deltaSec)
-            if (inputState.backwards) velVector -= vectorFront(inputState.cameraY, 0f, force * deltaSec)
-            if (inputState.right) velVector -= vectorFront(inputState.cameraY + 90f, 0f, force * deltaSec)
-            if (inputState.left) velVector -= vectorFront(inputState.cameraY - 90f, 0f, force * deltaSec)
-            player.collisionBox.applyForce(velVector)
-        }
-
-        // Jump
-        if (inputState.jump &&  player.collisionBox.inGround) {
-            lastJump = System.currentTimeMillis()
-            player.collisionBox.applyForce(Vector3f(0f, force * 25f * deltaSec, 0f))
-        }
+        doPlayerMovement(player.collisionBox, inputState, delta)
 
         // Shot
-        if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
+        if (inputState.fire && System.currentTimeMillis() - player.lastShot > 200) {
             player.lastShot = System.currentTimeMillis()
             val shotForce = 60.0f
-            val frontPos = 1.2f
+            val frontPos = 1.5f
             val box = Box(
                 id = generateId(),
                 mass = 1f,
@@ -291,7 +270,8 @@ class Server {
             textureId = box.textureId,
             textureMultiplier = box.textureMultiplier,
             bounceMultiplier = box.bounceMultiplier,
-            isSphere = box.isSphere
+            isSphere = box.isSphere,
+            isCharacter = box.isCharacter
         )
     }
 
