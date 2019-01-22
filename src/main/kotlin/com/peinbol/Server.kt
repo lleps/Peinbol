@@ -56,7 +56,7 @@ class Server {
                 broadcastCurrentWorldState()
                 lastBroadcast = System.currentTimeMillis()
             }
-            Thread.sleep(8)
+            Thread.sleep(1)
         }
     }
 
@@ -269,7 +269,9 @@ class Server {
             id = box.id,
             position = box.position,
             size = box.size,
-            velocity = box.linearVelocity,
+            linearVelocity = box.linearVelocity,
+            angularVelocity = box.angularVelocity,
+            rotation = box.rotation,
             mass = box.mass,
             affectedByPhysics = box.affectedByPhysics,
             textureId = box.textureId,

@@ -18,7 +18,7 @@ class Box(
     val mass: Float = 0f,
     val theColor: Color4f = Color4f(1f, 1f, 1f, 1f),
     var affectedByPhysics: Boolean = true, // not useful, as mass 0 equals "static object".
-    var inGround: Boolean = false, // set by physics to true if velocity y is close to zero
+    var inGround: Boolean = false, // set by physics to true if linearVelocity y is close to zero
     val textureId: Int = Textures.METAL_ID,
     val textureMultiplier: Double = 1.0,
     val bounceMultiplier: Float = 0f

@@ -152,12 +152,13 @@ object Messages {
     }
 
     /** Add some box to the world. */
-    // TODO: add quat to boxAdded
     class BoxAdded(
         val id: Int, // 4
         val position: Vector3f, // 4*3
         val size: Vector3f, // 4*3
-        val velocity: Vector3f, // 4*3
+        val linearVelocity: Vector3f, // 4*3
+        val angularVelocity: Vector3f, // 4*3
+        val rotation: Quat4f, // 4*4
         val mass: Float, // 4
         val affectedByPhysics: Boolean, // 1
         val textureId: Int, // 4
@@ -166,13 +167,15 @@ object Messages {
     ) {
         companion object : MessageType<BoxAdded> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)+(4*3)+4+1+4+8+4
+                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4
 
             override fun write(msg: BoxAdded, buf: ByteBuf) {
                 buf.writeInt(msg.id)
                 buf.writeVector3f(msg.position)
                 buf.writeVector3f(msg.size)
-                buf.writeVector3f(msg.velocity)
+                buf.writeVector3f(msg.linearVelocity)
+                buf.writeVector3f(msg.angularVelocity)
+                buf.writeQuat4f(msg.rotation)
                 buf.writeFloat(msg.mass)
                 buf.writeBoolean(msg.affectedByPhysics)
                 buf.writeInt(msg.textureId)
@@ -186,6 +189,8 @@ object Messages {
                     buf.readVector3f(),
                     buf.readVector3f(),
                     buf.readVector3f(),
+                    buf.readVector3f(),
+                    buf.readQuat4f(),
                     buf.readFloat(),
                     buf.readBoolean(),
                     buf.readInt(),
