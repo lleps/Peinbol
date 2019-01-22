@@ -29,6 +29,7 @@ class Server {
     private lateinit var physics: Physics
     private lateinit var network: Network.Server
     private var boxes = mutableListOf<Box>()
+    private var bulletsAddTimestamp = hashMapOf<Box, Long>()
     private val playersByConnections = hashMapOf<Network.PlayerConnection, Player>()
 
     fun run() {
@@ -56,7 +57,8 @@ class Server {
                 broadcastCurrentWorldState()
                 lastBroadcast = System.currentTimeMillis()
             }
-            Thread.sleep(1)
+            globalUpdate()
+            Thread.sleep(16)
         }
     }
 
@@ -219,47 +221,59 @@ class Server {
 
     private var lastJump = System.currentTimeMillis()
 
+    /** Misc routines the server may do. */
+    private fun globalUpdate() {
+        // del bullets after 15 secs
+        for ((bullet, timestamp) in bulletsAddTimestamp.toList()) {
+            if (System.currentTimeMillis() - timestamp > 8000) {
+                bulletsAddTimestamp.remove(bullet)
+                removeBox(bullet)
+            }
+        }
+    }
+
     /** Update [player] collision box based on the given [inputState]. */
     private fun updatePlayer(player: Player, inputState: Messages.InputState, delta: Long) {
         val deltaSec = delta / 1000f
-        var force = 200f
-
+        val force = 400f
+        val limit = if (inputState.walk && player.collisionBox.inGround) 1f else 4f
         // TODO: find a way to balance this, and set a high friction on the ground or something like that.
-
-        // Shift
-        if (inputState.walk && player.collisionBox.inGround) force *= 0.2f
 
         player.collisionBox.rotation = Quat4f(0f, 0f, 0f, 1f)
 
         // W,A,S,D
-        var velVector = Vector3f()
-        if (inputState.forward) velVector += vectorFront(inputState.cameraY, 0f, force * deltaSec)
-        if (inputState.backwards) velVector -= vectorFront(inputState.cameraY, 0f, force * deltaSec)
-        if (inputState.right) velVector -= vectorFront(inputState.cameraY + 90f, 0f, force * deltaSec)
-        if (inputState.left) velVector -= vectorFront(inputState.cameraY - 90f, 0f, force * deltaSec)
-        player.collisionBox.applyForce(velVector)
+        if (player.collisionBox.linearVelocity.length() < limit) {
+            var velVector = Vector3f()
+            if (inputState.forward) velVector += vectorFront(inputState.cameraY, 0f, force * deltaSec)
+            if (inputState.backwards) velVector -= vectorFront(inputState.cameraY, 0f, force * deltaSec)
+            if (inputState.right) velVector -= vectorFront(inputState.cameraY + 90f, 0f, force * deltaSec)
+            if (inputState.left) velVector -= vectorFront(inputState.cameraY - 90f, 0f, force * deltaSec)
+            player.collisionBox.applyForce(velVector)
+        }
 
         // Jump
-        if (inputState.jump && System.currentTimeMillis() - lastJump > 1000) {
+        if (inputState.jump &&  player.collisionBox.inGround) {
             lastJump = System.currentTimeMillis()
-            player.collisionBox.applyForce(Vector3f(0f, force * 3f * deltaSec, 0f))
+            player.collisionBox.applyForce(Vector3f(0f, force * 25f * deltaSec, 0f))
         }
 
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 450) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 30.0f
+            val shotForce = 60.0f
             val frontPos = 1.2f
             val box = Box(
                 id = generateId(),
                 mass = 1f,
                 position = player.collisionBox.position + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
-                size = Vector3f(0.2f, 0.2f, 0.2f),
+                size = Vector3f(0.1f, 0.0f, 0.0f),
                 textureId = Textures.RUBIK_ID,
-                textureMultiplier = 0.01,
-                bounceMultiplier = 0.8f
+                textureMultiplier = 1.0,
+                bounceMultiplier = 0.8f,
+                isSphere = true
             )
             addBox(box)
+            bulletsAddTimestamp[box] = System.currentTimeMillis()
             box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
         }
     }
@@ -276,7 +290,8 @@ class Server {
             affectedByPhysics = box.affectedByPhysics,
             textureId = box.textureId,
             textureMultiplier = box.textureMultiplier,
-            bounceMultiplier = box.bounceMultiplier
+            bounceMultiplier = box.bounceMultiplier,
+            isSphere = box.isSphere
         )
     }
 
@@ -290,6 +305,7 @@ class Server {
         if (box in boxes) {
             physics.unRegister(box)
             boxes.remove(box)
+            network.broadcast(Messages.RemoveBox(box.id))
         }
     }
 }

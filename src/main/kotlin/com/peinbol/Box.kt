@@ -11,7 +11,7 @@ import javax.vecmath.Vector3f
 class Box(
     val id: Int = 0,
     position: Vector3f = Vector3f(),
-    val size: Vector3f = Vector3f(),
+    val size: Vector3f = Vector3f(), // if isSphere, size.x is the radius
     linearVelocity: Vector3f = Vector3f(),
     angularVelocity: Vector3f = Vector3f(),
     rotation: Quat4f = Quat4f(0f, 0f, 0f, 1f),
@@ -21,7 +21,8 @@ class Box(
     var inGround: Boolean = false, // set by physics to true if linearVelocity y is close to zero
     val textureId: Int = Textures.METAL_ID,
     val textureMultiplier: Double = 1.0,
-    val bounceMultiplier: Float = 0f
+    val bounceMultiplier: Float = 0f,
+    val isSphere: Boolean = false
 ) {
     var position: Vector3f = position
         set(value) {
@@ -39,6 +40,7 @@ class Box(
         set(value) {
             if (!syncing) {
                 val body = rigidBody!!
+                if (value.length() > 0.001) body.activate()
                 body.setLinearVelocity(value.get())
             }
             field = value.get()
@@ -48,6 +50,7 @@ class Box(
         set(value) {
             if (!syncing) {
                 val body = rigidBody!!
+                if (value.length() > 0.001) body.activate()
                 body.setAngularVelocity(value.get())
             }
             field = value.get()

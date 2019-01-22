@@ -33,6 +33,7 @@ object Messages {
         registerMessageType(1, Spawn, Spawn::class)
         registerMessageType(2, BoxAdded, BoxAdded::class)
         registerMessageType(3, BoxUpdateMotion, BoxUpdateMotion::class)
+        registerMessageType(4, RemoveBox, RemoveBox::class)
     }
 
     /** Wraps the message ID and their body */
@@ -163,11 +164,12 @@ object Messages {
         val affectedByPhysics: Boolean, // 1
         val textureId: Int, // 4
         val textureMultiplier: Double, // 8
-        val bounceMultiplier: Float // 4
+        val bounceMultiplier: Float, // 4
+        val isSphere: Boolean // 1
     ) {
         companion object : MessageType<BoxAdded> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4
+                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4+1
 
             override fun write(msg: BoxAdded, buf: ByteBuf) {
                 buf.writeInt(msg.id)
@@ -181,6 +183,7 @@ object Messages {
                 buf.writeInt(msg.textureId)
                 buf.writeDouble(msg.textureMultiplier)
                 buf.writeFloat(msg.bounceMultiplier)
+                buf.writeBoolean(msg.isSphere)
             }
 
             override fun read(buf: ByteBuf): BoxAdded {
@@ -195,7 +198,8 @@ object Messages {
                     buf.readBoolean(),
                     buf.readInt(),
                     buf.readDouble(),
-                    buf.readFloat()
+                    buf.readFloat(),
+                    buf.readBoolean()
                 )
             }
         }
@@ -232,4 +236,24 @@ object Messages {
             }
         }
     }
+
+
+    /** Remove a box */
+    class RemoveBox(
+        val boxId: Int // 4
+    ) {
+        companion object : MessageType<RemoveBox> {
+            override val bytes: Int
+                get() = 4
+
+            override fun write(msg: RemoveBox, buf: ByteBuf) {
+                buf.writeInt(msg.boxId)
+            }
+
+            override fun read(buf: ByteBuf): RemoveBox {
+                return RemoveBox(buf.readInt())
+            }
+        }
+    }
+
 }

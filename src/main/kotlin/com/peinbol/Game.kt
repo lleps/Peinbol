@@ -44,8 +44,8 @@ class Game {
 
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-            val deltaMoveX = window.mouseX - 100f // since was centered on last frame, get how much moved since then
-            val deltaMoveY = window.mouseY - 100f
+            val deltaMoveX = window.mouseDeltaX
+            val deltaMoveY = window.mouseDeltaY
             val delta = System.currentTimeMillis() - lastFrame
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
@@ -80,7 +80,8 @@ class Game {
                     affectedByPhysics = msg.affectedByPhysics,
                     textureId = msg.textureId,
                     textureMultiplier = msg.textureMultiplier,
-                    bounceMultiplier = msg.bounceMultiplier
+                    bounceMultiplier = msg.bounceMultiplier,
+                    isSphere = msg.isSphere
                 )
                 addBox(box)
             }
@@ -95,12 +96,27 @@ class Game {
                     println("Can't find box for id ${msg.id}")
                 }
             }
+            is Messages.RemoveBox -> {
+                val theBox = boxes[msg.boxId]
+                if (theBox != null) {
+                    removeBox(theBox)
+                }
+            }
         }
     }
+
+    private var lastCursorModeSwitch = System.currentTimeMillis()
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Float) {
         // sync camera pos (and delta). Pos is synced with myBoxId
+        if (window.isKeyPressed(GLFW_KEY_U)) {
+            if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
+                lastCursorModeSwitch = System.currentTimeMillis()
+                window.mouseVisible = !window.mouseVisible
+            }
+        }
+
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
             window.cameraPosX = playerBox.position.x
@@ -133,6 +149,14 @@ class Game {
             boxes[box.id] = box
             physics.register(box)
             window.boxes += box
+        }
+    }
+
+    private fun removeBox(box: Box) {
+        if (box.id in boxes) {
+            boxes.remove(box.id)
+            physics.unRegister(box)
+            window.boxes -= box
         }
     }
 
