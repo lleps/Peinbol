@@ -122,6 +122,7 @@ class Client {
     }
 
     private var lastCursorModeSwitch = System.currentTimeMillis()
+    private var onDrugs = false
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
@@ -144,6 +145,12 @@ class Client {
                 window.mouseVisible = !window.mouseVisible
             }
         }
+        if (window.isKeyPressed(GLFW_KEY_K)) {
+            if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
+                lastCursorModeSwitch = System.currentTimeMillis()
+                onDrugs = !onDrugs
+            }
+        }
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
@@ -162,8 +169,12 @@ class Client {
         }
         window.cameraRotX -= mouseDY * 0.4f// + mouseDxAdd*0.2f
         window.cameraRotY -= (mouseDX * 0.4f) //+ mouseDxAdd
+        window.cameraRotZ += mouseDxAdd
 
-
+        if (onDrugs) {
+            window.fov = 30 + (timedOscillator(1000) / 1000f)*10f
+            window.aspectRatioMultiplier = 0.8f + (timedOscillator(1200) / 1200)
+        }
         // send input state if the keys changed
         if (inputState != lastSentInputState) {
             network.send(inputState)

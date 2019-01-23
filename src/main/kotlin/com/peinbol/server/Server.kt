@@ -43,6 +43,7 @@ class Server {
         println("Init main thread...")
         physics = Physics(Physics.Mode.SERVER)
         physics.init()
+        physics.onCollision { box1, box2 -> handleCollision(box1, box2) }
         generateWorld()
         var lastPhysicsSimulate = System.currentTimeMillis()
         var lastBroadcast = System.currentTimeMillis()
@@ -93,7 +94,7 @@ class Server {
             position = Vector3f(0f, -50f, 0f),
             size = Vector3f(100f, 1f, 100f),
             affectedByPhysics = false,
-            textureId = Textures.WOOD_ID,
+            textureId = Textures.GRASS_ID,
             textureMultiplier = 50.0
         )
         addBox(base)
@@ -104,7 +105,7 @@ class Server {
             position = Vector3f(-50f, -45f, 0f),
             size = Vector3f(2f, 10f, 100f),
             affectedByPhysics = false,
-            textureId = Textures.METAL_ID,
+            textureId = Textures.CLOTH_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
@@ -112,7 +113,7 @@ class Server {
             position = Vector3f(50f, -45f, 0f),
             size = Vector3f(2f, 10f, 100f),
             affectedByPhysics = false,
-            textureId = Textures.METAL_ID,
+            textureId = Textures.CLOTH_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
@@ -120,7 +121,7 @@ class Server {
             position = Vector3f(0f, -45f, -50f),
             size = Vector3f(100f, 10f, 2f),
             affectedByPhysics = false,
-            textureId = Textures.METAL_ID,
+            textureId = Textures.CLOTH_ID,
             textureMultiplier = 35.0
         ))
         addBox(Box(
@@ -128,31 +129,58 @@ class Server {
             position = Vector3f(0f, -45f, 50f),
             size = Vector3f(100f, 10f, 2f),
             affectedByPhysics = false,
-            textureId = Textures.METAL_ID,
+            textureId = Textures.CLOTH_ID,
             textureMultiplier = 35.0
         ))
 
         // some random walls
-        for (i in 0..randBetween(10, 20)) {
+        for (i in 0..randBetween(10, 40)) {
             val length = randBetween(5, 10).toFloat()
             val axis = randBetween(0, 2)
             addBox(Box(
                 id = generateId(),
                 position = Vector3f(
                     randBetween(-50, 50).toFloat(),
-                    -40f,
+                    -45f,
                     randBetween(-50, 50).toFloat()
                 ),
                 size = Vector3f(
-                    if (axis == 0) 1f else length,
-                    10f,
-                    if (axis == 0) length else 1f
+                    if (axis == 0) 2f else length,
+                    9f,
+                    if (axis == 0) length else 2f
                 ),
                 affectedByPhysics = false,
-                mass = 30f,
+                mass = 0f,
                 textureId = Textures.METAL_ID,
                 textureMultiplier = 35.0
             ))
+        }
+    }
+
+    private fun handleCollision(box1: Box, box2: Box) {
+        var sphere: Box? = null
+        var other: Box? = null
+        if (box1.isSphere) {
+            sphere = box1
+            other = box2
+        } else if (box2.isSphere) {
+            sphere = box2
+            other = box1
+        }
+
+        if (sphere != null && other != null) {
+            // check if other box corresponds to a player
+            val shotTarget = playersByConnections.values.firstOrNull { it.collisionBox == other }
+
+            if (shotTarget != null) {
+                shotTarget.health -= 10
+                network.send(Messages.SetHealth(shotTarget.health), shotTarget.connection)
+                if (shotTarget.health <= 0) {
+                    shotTarget.connection.channel.close()
+                }
+            }
+            removeBox(sphere)
+            bulletsAddTimestamp.remove(sphere)
         }
     }
 
@@ -251,8 +279,6 @@ class Server {
                 bounceMultiplier = 0.8f,
                 isSphere = true
             )
-            player.health -= 1
-            network.send(Messages.SetHealth(player.health), player.connection)
             addBox(box)
             bulletsAddTimestamp[box] = System.currentTimeMillis()
             box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce) + Vector3f(0f, shotForce*0.1f, 0f))

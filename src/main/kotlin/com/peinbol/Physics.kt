@@ -15,6 +15,11 @@ import com.bulletphysics.linearmath.DefaultMotionState
 import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
+import com.bulletphysics.collision.dispatch.CollisionObject
+import com.bulletphysics.collision.narrowphase.ManifoldPoint
+import com.bulletphysics.collision.narrowphase.PersistentManifold
+
+
 
 class Physics(
     private val mode: Mode,
@@ -32,6 +37,7 @@ class Physics(
 
     private lateinit var world: DynamicsWorld
     private val boxes = mutableListOf<Box>()
+    private var collisionCallback: (Box, Box) -> Unit = { _, _ -> }
 
     fun init() {
         val broadphase = DbvtBroadphase()
@@ -42,6 +48,10 @@ class Physics(
         world.setGravity(Vector3f(0f, -20f, 0f))
         //val k = KinematicCharacterController(PairCachingGhostObject(), BoxShape(Vector3f(1f,1f,1f)), 0.5f)
         //world.addAction(k)
+    }
+
+    fun onCollision(callback: (Box, Box) -> Unit) {
+        collisionCallback = callback
     }
 
     fun register(box: Box) {
@@ -98,14 +108,15 @@ class Physics(
         val body = RigidBody(constructionInfo)
         if (box.isSphere || box.isCharacter) {
             body.ccdMotionThreshold = 0.2f
+            body.activationState = CollisionObject.DISABLE_DEACTIVATION
         }
         box.rigidBody = body
         if (!box.affectedByPhysics) {
             body.friction = 0.95f
         }
         world.addRigidBody(body)
+        body.userPointer = box
     }
-
     fun unRegister(box: Box) {
         if (box !in boxes) return
         boxes -= box
@@ -131,6 +142,25 @@ class Physics(
                 rigidBody.getAngularVelocity(box.angularVelocity)
                 box.inGround = Math.abs(box.linearVelocity.y) < DELTA_TO_BE_IN_GROUND
                 box.syncing = false
+            }
+        }
+
+        val numManifolds = world.dispatcher.numManifolds
+        for (i in 0 until numManifolds) {
+            val contactManifold = world.dispatcher.getManifoldByIndexInternal(i) ?: continue
+            val obA = contactManifold.body0 as RigidBody
+            val obB = contactManifold.body1 as RigidBody
+            //println("collision! $obA $obB")
+
+            val numContacts = contactManifold.numContacts
+            for (j in 0 until numContacts) {
+                val pt = contactManifold.getContactPoint(j)
+                if (pt.distance < 0f) {
+                    collisionCallback(obA.userPointer as Box, obB.userPointer as Box)
+                    //val ptA = pt.getPositionWorldOnA(Vector3f())
+                    //val ptB = pt.getPositionWorldOnB(Vector3f())
+                    //val normalOnB = pt.normalWorldOnB
+                }
             }
         }
     }

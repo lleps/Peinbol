@@ -34,6 +34,8 @@ class Window {
     var boxes: List<Box> = emptyList()
 
 
+    var fov: Float = 30f
+    var aspectRatioMultiplier = 1f
     var cameraPosX = 0f
     var cameraPosY = 0f
     var cameraPosZ = 0f
@@ -135,7 +137,7 @@ class Window {
     private fun setup3DView() {
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 1000.0)
+        gluPerspective(fov.toDouble(), aspectRatioMultiplier * (width.toDouble() / height.toDouble()), 0.001, 1000.0)
         glMatrixMode(GL_MODELVIEW)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_CULL_FACE)
