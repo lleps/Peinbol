@@ -1,7 +1,8 @@
-package com.peinbol;/*
+/*
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
+package com.peinbol;
 
 import org.lwjgl.nuklear.*;
 import org.lwjgl.opengl.*;
@@ -17,7 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.Objects;
+import java.util.*;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.nuklear.Nuklear.*;
@@ -27,12 +28,9 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * Nuklear demo using GLFW, OpenGL and stb_truetype for rendering.
- *
- * <p>This demo is a Java port of
- * <a href="https://github.com/vurtun/nuklear/tree/master/demo/glfw_opengl3">https://github.com/vurtun/nuklear/tree/master/demo/glfw_opengl3</a>.</p>
+ * Implements nuklear using GLFW and OpenGL.
  */
-public class NuklearGLDrawer {
+public class NkGLBackend {
 
     private static final int BUFFER_INITIAL_SIZE = 4 * 1024;
 
@@ -55,6 +53,11 @@ public class NuklearGLDrawer {
                 .position(3).attribute(NK_VERTEX_ATTRIBUTE_COUNT).format(NK_FORMAT_COUNT).offset(0)
                 .flip();
     }
+
+    private final List<NkUIDrawable> drawables = new ArrayList<>();
+
+    // an extra collection to allow to unregister drawables while drawing
+    private final Collection<NkUIDrawable> drawablesToRemove = new HashSet<>();
 
     private final ByteBuffer ttf;
 
@@ -79,10 +82,7 @@ public class NuklearGLDrawer {
     private int uniform_tex;
     private int uniform_proj;
 
-    private final Demo       demo = new Demo();
-    private final Calculator calc = new Calculator();
-
-    public NuklearGLDrawer() {
+    public NkGLBackend() {
         try {
             this.ttf = IOUtil.ioResourceToByteBuffer("demo/FiraSans.ttf", 512 * 1024);
         } catch (IOException e) {
@@ -90,11 +90,16 @@ public class NuklearGLDrawer {
         }
     }
 
-    public void draw(Long win) {
-        newFrame(win);
+    public void addDrawable(NkUIDrawable drawable) {
+        drawables.add(drawable);
+    }
 
-        demo.layout(ctx, 50, 50);
-        //calc.layout(ctx, 300, 50);
+    public void removeDrawable(NkUIDrawable drawable) {
+        drawablesToRemove.add(drawable);
+    }
+
+    public void draw(long win) {
+        newFrame(win);
 
         try (MemoryStack stack = stackPush()) {
             IntBuffer width  = stack.mallocInt(1);
@@ -103,9 +108,18 @@ public class NuklearGLDrawer {
             glfwGetWindowSize(win, width, height);
             glViewport(0, 0, width.get(0), height.get(0));
 
-            NkColorf bg = demo.background;
-            glClearColor(bg.r(), bg.g(), bg.b(), bg.a());
+            Iterator<NkUIDrawable> iterator = drawables.iterator();
+            while (iterator.hasNext()) {
+                NkUIDrawable next = iterator.next();
+                if (drawablesToRemove.contains(next)) {
+                    iterator.remove();
+                    drawablesToRemove.remove(next);
+                } else {
+                    next.draw(ctx, width.get(0), height.get(0));
+                }
+            }
         }
+
         /*
          * IMPORTANT: `nk_glfw_render` modifies some global OpenGL state
          * with blending, scissor, face culling, depth test and viewport and
@@ -116,7 +130,7 @@ public class NuklearGLDrawer {
         render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
     }
 
-    void run(Long win) {
+    void init(long win) {
         NkContext ctx = setupWindow(win);
 
         int BITMAP_W = 1024;
@@ -589,8 +603,6 @@ public class NuklearGLDrawer {
         destroy();
         Objects.requireNonNull(default_font.query()).free();
         Objects.requireNonNull(default_font.width()).free();
-
-        calc.numberFilter.free();
 
         Objects.requireNonNull(ALLOCATOR.alloc()).free();
         Objects.requireNonNull(ALLOCATOR.mfree()).free();

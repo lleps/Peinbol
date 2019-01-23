@@ -18,9 +18,13 @@ import java.lang.Math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+class Window {
+    private var width = 800
+    private var height = 600
 
-class Window(val width: Int = 1366, val height: Int = 768) {
+    // TODO: move to methods.
     var boxes: List<Box> = emptyList()
+
 
     var cameraPosX = 0f
     var cameraPosY = 0f
@@ -41,81 +45,94 @@ class Window(val width: Int = 1366, val height: Int = 768) {
             field = value % 360f
         }
 
-    private var window: Long = 0
-
-    /** Set the mouse visible (i.e for UI) or invisible, for FPS camera */
-    var mouseVisible: Boolean = false
-        set(value) {
-            field = value
-            if (!value) {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL)
-            } else {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN)
-            }
-        }
-
-    private val textures = mutableMapOf<Int, Texture>()
-    private val uiDrawer = NuklearGLDrawer()
-
     var mouseDeltaX: Float = 0f
         private set
 
     var mouseDeltaY: Float = 0f
         private set
 
-    fun init() {
+    private var window: Long = 0
+    private val textures = mutableMapOf<Int, Texture>()
+    private val uiDrawer = NkGLBackend()
+    private val uiDrawables = hashMapOf<Class<out NkUIDrawable>, NkUIDrawable>()
 
+    /** Register a drawable instance for the given class. Throws an exception if
+     * other drawable is already registered for the class.
+     */
+    fun <T : NkUIDrawable> registerUIElement(clazz: Class<T>, drawable: T) {
+        check(clazz !in uiDrawables) { "class $clazz already has a drawable registered. Remove it first." }
+        uiDrawables[clazz] = drawable
+        uiDrawer.addDrawable(drawable)
+    }
+
+    /** Get the drawable instance for the class, or null if it isn't registered. */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : NkUIDrawable> getUIElement(clazz: Class<T>): T? {
+        return uiDrawables[clazz] as T?
+    }
+
+    /** Remove the drawable. Thows an exception if no drawable for [clazz] is registered. */
+    fun <T : NkUIDrawable> unregisterUIElement(clazz: Class<T>) {
+        check(clazz in uiDrawables) { "class $clazz doesn't have a drawable registered." }
+        if (clazz in uiDrawables) {
+            val drawable = uiDrawables[clazz]!!
+            uiDrawables -= clazz
+            uiDrawer.removeDrawable(drawable)
+        }
+    }
+
+    fun init() {
         GLFWErrorCallback.createPrint(System.err).set()
 
         if (!glfwInit())
             throw IllegalStateException("Unable to initialize GLFW")
 
         glfwDefaultWindowHints() // optional, the current window hints are already the default
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE) // the window will stay hidden after creation
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // the window will be resizable
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)
+        //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+        //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
 
-        window = glfwCreateWindow(width, height, "Hello World!", glfwGetPrimaryMonitor(), NULL)
+        val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
+        width = vidmode!!.width()
+        height = vidmode.height()
+
+        window = glfwCreateWindow(width, height, "Peinbol", glfwGetPrimaryMonitor(), NULL)
         if (window == NULL)
             throw RuntimeException("Failed to create the GLFW window")
-
-        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN)
-
 
         stackPush().use { stack ->
             val pWidth = stack.mallocInt(1) // int*
             val pHeight = stack.mallocInt(1) // int*
             glfwGetWindowSize(window, pWidth, pHeight)
-            val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-
             glfwSetWindowPos(
                 window,
-                (vidmode!!.width() - pWidth.get(0)) / 2,
-                (vidmode.height() - pHeight.get(0)) / 2
+                (width - pWidth.get(0)) / 2,
+                (height - pHeight.get(0)) / 2
             )
         }
 
         glfwMakeContextCurrent(window)
         glfwSwapInterval(1) // Enable v-sync
         glfwShowWindow(window)
-
         GL.createCapabilities()
 
-        uiDrawer.run(window)
+        uiDrawer.init(window)
 
         for ((txtId, txtFile) in Textures.FILES) {
             textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
         }
     }
 
-    private fun setupOpenGLToDraw3D() {
+    private fun setup3DView() {
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(30.toFloat().toDouble(), width.toDouble() / height.toDouble(), 0.001, 1000.0)
         glMatrixMode(GL_MODELVIEW)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_CULL_FACE)
+        glEnable(GL_TEXTURE_2D)
         glCullFace(GL_BACK)
-
     }
 
     private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
@@ -132,10 +149,6 @@ class Window(val width: Int = 1366, val height: Int = 768) {
     private var transform = Transform()
     private var transformBuffer = BufferUtils.createFloatBuffer(16)
 
-    fun centerCursor() {
-        //glfwSetCursorPos(window, 100.0, 100.0)
-    }
-
     fun draw() {
         // Get mouse movement
         if (mouseVisible) {
@@ -143,20 +156,13 @@ class Window(val width: Int = 1366, val height: Int = 768) {
                 val x = stack.mallocDouble(1)
                 val y = stack.mallocDouble(1)
                 glfwGetCursorPos(window, x, y)
-                mouseDeltaX = (x.get(0) - 100.0).toFloat()
-                mouseDeltaY = (y.get(0) - 100.0).toFloat()
-                glfwSetCursorPos(window, 100.0, 100.0)
+                val centerX = width / 2f
+                val centerY = height / 2f
+                mouseDeltaX = (x.get(0) - centerX).toFloat()
+                mouseDeltaY = (y.get(0) - centerY).toFloat()
+                glfwSetCursorPos(window, centerX.toDouble(), centerY.toDouble())
             }
         }
-
-        setupOpenGLToDraw3D()
-        glEnable(GL_TEXTURE_2D)
-        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
-        glRotatef(-cameraRotX, 1f, 0f, 0f)
-        glRotatef(-cameraRotY, 0f, 1f, 0f)
-        glRotatef(-cameraRotZ, 0f, 0f, 1f)
-        glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         val skyColor = Color(152.0/255.0, 209.0/255.0, 214.0/255.0)
         glClearColor(
@@ -165,15 +171,20 @@ class Window(val width: Int = 1366, val height: Int = 768) {
             skyColor.b.toFloat(),
             skyColor.a.toFloat()
         )
+        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+
+        // Draw world. Init state because uiDrawer may alter it
+        setup3DView()
+        glLoadIdentity()
+        glRotatef(-cameraRotX, 1f, 0f, 0f)
+        glRotatef(-cameraRotY, 0f, 1f, 0f)
+        glRotatef(-cameraRotZ, 0f, 0f, 1f)
+        glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ)
 
         val ambientLight = 0.8f
         for (box in boxes) {
             textures[box.textureId]?.bind()
-
-
-            // TODO: based on box size, keep the texture relation to 1/1
             glColor3f(box.theColor.x * ambientLight, box.theColor.y * ambientLight, box.theColor.z * ambientLight)
-
             glPushMatrix()
 
             // set position and rotation based on the rigid body
@@ -220,8 +231,7 @@ class Window(val width: Int = 1366, val height: Int = 768) {
             glPopMatrix()
         }
 
-
-
+        // Stats
         fpsCount++
         if (System.currentTimeMillis() > countFpsExpiry) {
             glfwSetWindowTitle(window,
@@ -232,13 +242,27 @@ class Window(val width: Int = 1366, val height: Int = 768) {
             countFpsExpiry = System.currentTimeMillis() + 1000
         }
 
-
-        // now, the death...
+        // Draw UI
         uiDrawer.draw(window)
 
+        // Window sync
         glfwSwapBuffers(window) // swap the color buffers
         glfwPollEvents()
     }
+
+    /** Set the mouse visible (i.e for UI) or invisible, for FPS camera */
+    var mouseVisible: Boolean = false
+        set(value) {
+            if (!value) {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL)
+            } else {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN)
+            }
+            glfwSetCursorPos(window, (width / 2f).toDouble(), (height / 2f).toDouble())
+            mouseDeltaX = 0f
+            mouseDeltaY = 0f
+            field = value
+        }
 
     fun isKeyPressed(key: Int): Boolean {
         return glfwGetKey(window, key) == GLFW_PRESS

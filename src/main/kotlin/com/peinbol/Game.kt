@@ -1,6 +1,7 @@
 package com.peinbol
 
 import org.lwjgl.glfw.GLFW.*
+import javax.vecmath.Vector3f
 
 /**
  * Peinbol game client. Essentially, draw what the server says.
@@ -37,8 +38,13 @@ class Game {
         // Init window
         window = Window()
         window.init()
+        window.registerUIElement(CrosshairUI::class.java, CrosshairUI {
+            val box = boxes[myBoxId]
+            if (box != null) box.linearVelocity
+            else Vector3f()
+        })
+        window.registerUIElement(Demo::class.java, Demo())
         txts // init txts variable when opengl is already loaded, otherwise jvm crash
-        window.centerCursor()
         physics = Physics(Physics.Mode.CLIENT)
         physics.init()
 
@@ -51,14 +57,11 @@ class Game {
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
             physics.simulate(delta.toDouble(), false)
-            window.centerCursor()
             window.draw()
         }
         window.destroy()
         network.close()
     }
-
-    var someRR = 0
 
     private var lastBoxSync = System.currentTimeMillis()
     /** Called when a message from the server arrives. */
@@ -118,6 +121,7 @@ class Game {
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
+
         val inputState = Messages.InputState(
             forward = window.isKeyPressed(GLFW_KEY_W),
             backwards = window.isKeyPressed(GLFW_KEY_S),
@@ -141,6 +145,7 @@ class Game {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
+            Demo.playerBox = playerBox
             doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
