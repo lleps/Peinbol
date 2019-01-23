@@ -16,7 +16,7 @@ class Box(
     angularVelocity: Vector3f = Vector3f(),
     rotation: Quat4f = Quat4f(0f, 0f, 0f, 1f),
     val mass: Float = 0f,
-    val theColor: Color4f = Color4f(1f, 1f, 1f, 1f),
+    var theColor: Color4f = Color4f(1f, 1f, 1f, 1f),
     var affectedByPhysics: Boolean = true, // not useful, as mass 0 equals "static object".
     var inGround: Boolean = false, // set by physics to true if linearVelocity y is close to zero
     val textureId: Int = Textures.METAL_ID,

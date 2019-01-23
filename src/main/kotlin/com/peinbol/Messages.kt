@@ -34,6 +34,7 @@ object Messages {
         registerMessageType(3, BoxUpdateMotion, BoxUpdateMotion::class)
         registerMessageType(4, RemoveBox, RemoveBox::class)
         registerMessageType(5, SetHealth, SetHealth::class)
+        registerMessageType(6, NotifyHit, NotifyHit::class)
     }
 
     /** Wraps the message ID and their body */
@@ -277,4 +278,22 @@ object Messages {
         }
     }
 
+    class NotifyHit(
+            val emitterBoxId: Int, // 4
+            val victimBoxId: Int // 4
+    ) {
+        companion object : MessageType<NotifyHit> {
+            override val bytes: Int
+                get() = 8
+
+            override fun write(msg: NotifyHit, buf: ByteBuf) {
+                buf.writeInt(msg.emitterBoxId)
+                buf.writeInt(msg.victimBoxId)
+            }
+
+            override fun read(buf: ByteBuf): NotifyHit {
+                return NotifyHit(buf.readInt(), buf.readInt())
+            }
+        }
+    }
 }

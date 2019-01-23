@@ -2,7 +2,9 @@ package com.peinbol.client
 
 import com.peinbol.*
 import org.lwjgl.glfw.GLFW.*
+import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
+import kotlin.concurrent.thread
 
 /**
  * Peinbol game client. Essentially, draw what the server says.
@@ -117,6 +119,17 @@ class Client {
             }
             is Messages.SetHealth -> {
                 window.getUIElement(HealthUI::class.java)!!.health = msg.health
+            }
+            is Messages.NotifyHit -> {
+                val victimBox = boxes[msg.victimBoxId]
+                if (victimBox != null) {
+                    victimBox.theColor = Color4f(1f, 0f, 0f, 1f)
+
+                    thread {
+                        Thread.sleep(100)
+                        victimBox.theColor = Color4f(1f, 1f, 1f, 1f)
+                    }
+                }
             }
         }
     }

@@ -31,6 +31,7 @@ class Server {
     private lateinit var network: Network.Server
     private var boxes = mutableListOf<Box>()
     private var bulletsAddTimestamp = hashMapOf<Box, Long>()
+    private var bulletEmitter = hashMapOf<Box, Player>()
     private val playersByConnections = hashMapOf<Network.PlayerConnection, Player>()
 
     fun run() {
@@ -171,12 +172,16 @@ class Server {
         if (sphere != null && other != null) {
             // check if other box corresponds to a player
             val shotTarget = playersByConnections.values.firstOrNull { it.collisionBox == other }
+            val shotEmitter = bulletEmitter[sphere]
 
-            if (shotTarget != null) {
-                shotTarget.health -= 10
-                network.send(Messages.SetHealth(shotTarget.health), shotTarget.connection)
-                if (shotTarget.health <= 0) {
-                    shotTarget.connection.channel.close()
+            if (shotEmitter != null) {
+                if (shotTarget != null) {
+                    shotTarget.health -= 10
+                    network.send(Messages.SetHealth(shotTarget.health), shotTarget.connection)
+                    network.broadcast(Messages.NotifyHit(shotEmitter.collisionBox.id, shotTarget.collisionBox.id))
+                    if (shotTarget.health <= 0) {
+                        shotTarget.connection.channel.close()
+                    }
                 }
             }
             removeBox(sphere)
@@ -281,6 +286,7 @@ class Server {
             )
             addBox(box)
             bulletsAddTimestamp[box] = System.currentTimeMillis()
+            bulletEmitter[box] = player
             box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce) + Vector3f(0f, shotForce*0.1f, 0f))
         }
     }
