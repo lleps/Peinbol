@@ -1,5 +1,6 @@
-package com.peinbol
+package com.peinbol.client
 
+import com.peinbol.*
 import org.lwjgl.glfw.GLFW.*
 import javax.vecmath.Vector3f
 
@@ -7,13 +8,13 @@ import javax.vecmath.Vector3f
  * Peinbol game client. Essentially, draw what the server says.
  * And report input state (keys, cursor pos) back to the server.
  */
-class Game {
+class Client {
     companion object {
         private val INPUT_SYNC_RATE = 50 // each how many millis will send the state
 
         @JvmStatic
         fun main(args: Array<String>) {
-            val game = Game()
+            val game = Client()
             game.init(args)
         }
     }
@@ -43,7 +44,6 @@ class Game {
             if (box != null) box.linearVelocity
             else Vector3f()
         })
-        window.registerUIElement(Demo::class.java, Demo())
         txts // init txts variable when opengl is already loaded, otherwise jvm crash
         physics = Physics(Physics.Mode.CLIENT)
         physics.init()
@@ -145,7 +145,6 @@ class Game {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            Demo.playerBox = playerBox
             doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f

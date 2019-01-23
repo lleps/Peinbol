@@ -1,16 +1,21 @@
-package com.peinbol;/*
+package com.peinbol.client;/*
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
 
-import org.lwjgl.*;
+import org.lwjgl.BufferUtils;
 
-import java.io.*;
-import java.nio.*;
-import java.nio.channels.*;
-import java.nio.file.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import static org.lwjgl.BufferUtils.*;
+import static org.lwjgl.BufferUtils.createByteBuffer;
 
 public final class IOUtil {
 

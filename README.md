@@ -9,4 +9,4 @@ cambiarle la posición de la cámara, etc.
 procesa todas las boxes que tengan fisicas, y les suma x,y,z basado en su velocidad, les aplica gravedad,
 hequea si colisionan con otras cajas para invertir sus velocidades, etc.
                  
-* **Game.kt** Es la clase con el main loop. Crea una instancia de Window y Physics, y un par de cajas random en el mapa
+* **Client.kt** Es la clase con el main loop. Crea una instancia de Window y Physics, y un par de cajas random en el mapa

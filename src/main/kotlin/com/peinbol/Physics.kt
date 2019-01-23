@@ -1,11 +1,8 @@
 package com.peinbol
 
-import com.bulletphysics.collision.broadphase.CollisionFilterGroups
 import com.bulletphysics.collision.broadphase.DbvtBroadphase
 import com.bulletphysics.collision.dispatch.CollisionDispatcher
-import com.bulletphysics.collision.dispatch.CollisionFlags
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration
-import com.bulletphysics.collision.dispatch.PairCachingGhostObject
 import com.bulletphysics.collision.shapes.BoxShape
 import com.bulletphysics.collision.shapes.CapsuleShape
 import com.bulletphysics.collision.shapes.SphereShape
@@ -13,14 +10,11 @@ import com.bulletphysics.dynamics.DiscreteDynamicsWorld
 import com.bulletphysics.dynamics.DynamicsWorld
 import com.bulletphysics.dynamics.RigidBody
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo
-import com.bulletphysics.dynamics.character.KinematicCharacterController
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver
 import com.bulletphysics.linearmath.DefaultMotionState
 import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Matrix4f
-import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
-import kotlin.experimental.or
 
 class Physics(
     private val mode: Mode,

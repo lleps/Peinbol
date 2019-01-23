@@ -1,5 +1,6 @@
-package com.peinbol
+package com.peinbol.server
 
+import com.peinbol.*
 import javax.vecmath.Vector3f
 
 /**
@@ -244,7 +245,7 @@ class Server {
             val box = Box(
                 id = generateId(),
                 mass = 1f,
-                position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f ) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
+                position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
                 size = Vector3f(0.1f, 0.0f, 0.0f),
                 textureId = Textures.RUBIK_ID,
                 textureMultiplier = 1.0,

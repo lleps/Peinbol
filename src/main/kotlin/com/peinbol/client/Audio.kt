@@ -1,33 +1,13 @@
-package com.peinbol
+package com.peinbol.client
 
-import org.lwjgl.openal.*
-import org.lwjgl.system.*
-
-import java.nio.*
-
-import org.lwjgl.openal.AL10.*
-import org.lwjgl.openal.ALC10.*
-import org.lwjgl.stb.STBVorbis.*
-import org.lwjgl.system.MemoryStack.*
-import org.lwjgl.system.libc.LibCStdlib.*
-import org.lwjgl.openal.ALC10.alcCloseDevice
-import org.lwjgl.openal.ALC10.alcDestroyContext
-import org.lwjgl.openal.AL10.alSourcePlay
-import org.lwjgl.openal.AL10.AL_BUFFER
-import org.lwjgl.openal.AL10.alSourcei
-import org.lwjgl.openal.AL10.AL_FORMAT_STEREO16
-import org.lwjgl.openal.AL10.AL_FORMAT_MONO16
-import java.nio.IntBuffer
-import org.lwjgl.system.MemoryStack.stackPush
-import org.lwjgl.system.MemoryStack
-import java.nio.ShortBuffer
 import org.lwjgl.openal.AL
-import org.lwjgl.openal.ALCapabilities
+import org.lwjgl.openal.AL10.*
 import org.lwjgl.openal.ALC
-import org.lwjgl.openal.ALCCapabilities
-import org.lwjgl.openal.ALC10.alcMakeContextCurrent
-import org.lwjgl.openal.ALC10.ALC_DEFAULT_DEVICE_SPECIFIER
-import org.lwjgl.openal.ALC10.alcGetString
+import org.lwjgl.openal.ALC10.*
+import org.lwjgl.stb.STBVorbis.stb_vorbis_decode_filename
+import org.lwjgl.system.MemoryStack.stackPush
+import org.lwjgl.system.libc.LibCStdlib.free
+import java.nio.ShortBuffer
 
 fun main(args: Array<String>) {
     Audio().init()

@@ -11,7 +11,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
-/** Abstract network implementation from game logic. To be used with [Messages]. */
+/** Client/server abstract network implementations for the game. To be used with [Messages]. */
 class Network {
     companion object {
         /** Create a connected client to [host]:[port]. */

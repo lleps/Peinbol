@@ -2,10 +2,10 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-package com.peinbol;
+package com.peinbol.client;
 
 import org.lwjgl.nuklear.*;
-import org.lwjgl.opengl.*;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.stb.STBTTAlignedQuad;
 import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.stb.STBTTPackContext;

@@ -1,4 +1,4 @@
-package com.peinbol
+package com.peinbol.client
 
 import org.lwjgl.nuklear.NkContext
 

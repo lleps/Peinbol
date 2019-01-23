@@ -1,6 +1,9 @@
-package com.peinbol
+package com.peinbol.client
 
-import org.lwjgl.nuklear.*
+import org.lwjgl.nuklear.NkColor
+import org.lwjgl.nuklear.NkContext
+import org.lwjgl.nuklear.NkRect
+import org.lwjgl.nuklear.NkStyleItem
 import org.lwjgl.nuklear.Nuklear.*
 import org.lwjgl.system.MemoryStack
 import javax.vecmath.Vector3f

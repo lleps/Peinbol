@@ -8,9 +8,8 @@ import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 import kotlin.reflect.KClass
 
-
 /**
- * To define, serialize and deserialize data to be sent over the wire.
+ * To define, serialize and deserialize data to be exchanged between client/server.
  * Pretty much bound to netty.
  */
 object Messages {

@@ -1,4 +1,4 @@
-package com.peinbol;
+package com.peinbol.client;
 /*
  * Copyright (c) 2008-2010, Matthias Mann
  *
@@ -38,7 +38,7 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
- * A com.peinbol.PNGDecoder. The slick PNG decoder is based on this class :)
+ * A com.peinbol.client.PNGDecoder. The slick PNG decoder is based on this class :)
  *
  * @author Matthias Mann
  */

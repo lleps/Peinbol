@@ -1,6 +1,10 @@
-package com.peinbol
+package com.peinbol.client
 
 import com.bulletphysics.linearmath.Transform
+import com.peinbol.Box
+import com.peinbol.Color
+import com.peinbol.Textures
+import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
@@ -8,13 +12,17 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
-import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL11.glEnd
-import org.lwjgl.opengl.GL11.glVertex3f
-import org.lwjgl.opengl.GL11.glNormal3f
-import org.lwjgl.opengl.GL11.glBegin
-import org.lwjgl.opengl.GL11.GL_QUAD_STRIP
 import java.lang.Math.PI
+import kotlin.collections.List
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.contains
+import kotlin.collections.emptyList
+import kotlin.collections.hashMapOf
+import kotlin.collections.iterator
+import kotlin.collections.minusAssign
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -164,7 +172,7 @@ class Window {
             }
         }
 
-        val skyColor = Color(152.0/255.0, 209.0/255.0, 214.0/255.0)
+        val skyColor = Color(152.0 / 255.0, 209.0 / 255.0, 214.0 / 255.0)
         glClearColor(
             skyColor.r.toFloat(),
             skyColor.g.toFloat(),
