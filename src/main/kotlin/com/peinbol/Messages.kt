@@ -33,6 +33,7 @@ object Messages {
         registerMessageType(2, BoxAdded, BoxAdded::class)
         registerMessageType(3, BoxUpdateMotion, BoxUpdateMotion::class)
         registerMessageType(4, RemoveBox, RemoveBox::class)
+        registerMessageType(5, SetHealth, SetHealth::class)
     }
 
     /** Wraps the message ID and their body */
@@ -254,6 +255,24 @@ object Messages {
 
             override fun read(buf: ByteBuf): RemoveBox {
                 return RemoveBox(buf.readInt())
+            }
+        }
+    }
+
+    /** Notify hit, set player health. */
+    class SetHealth(
+        val health: Int // 4
+    ) {
+        companion object : MessageType<SetHealth> {
+            override val bytes: Int
+                get() = 4
+
+            override fun write(msg: SetHealth, buf: ByteBuf) {
+                buf.writeInt(msg.health)
+            }
+
+            override fun read(buf: ByteBuf): SetHealth {
+                return SetHealth(buf.readInt())
             }
         }
     }

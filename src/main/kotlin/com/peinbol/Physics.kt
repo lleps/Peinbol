@@ -70,7 +70,11 @@ class Physics(
         }
 
         val inertia = Vector3f()
-        shape.calculateLocalInertia(box.mass, inertia)
+        if (box.affectedByPhysics) {
+            shape.calculateLocalInertia(box.mass, inertia)
+        } else {
+            shape.calculateLocalInertia(box.mass, inertia)
+        }
         val constructionInfo = if (box.affectedByPhysics) {
             RigidBodyConstructionInfo(
                 box.mass,
@@ -86,16 +90,19 @@ class Physics(
                 DefaultMotionState(Transform(
                     Matrix4f(box.rotation, box.position.get(), 1f)
                 )),
-                shape
+                shape,
+                inertia
             )
         }
         //constructionInfo.restitution = box.bounceMultiplier
         val body = RigidBody(constructionInfo)
-        if (box.isSphere) {
+        if (box.isSphere || box.isCharacter) {
             body.ccdMotionThreshold = 0.2f
         }
         box.rigidBody = body
-        body.friction = 0.7f
+        if (!box.affectedByPhysics) {
+            body.friction = 0.95f
+        }
         world.addRigidBody(body)
     }
 

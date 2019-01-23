@@ -23,7 +23,8 @@ class Server {
         val connection: Network.PlayerConnection,
         val collisionBox: Box,
         var inputState: Messages.InputState,
-        var lastShot: Long = 0L
+        var lastShot: Long = 0L,
+        var health: Int = 100
     )
 
     private lateinit var physics: Physics
@@ -132,14 +133,14 @@ class Server {
         ))
 
         // some random walls
-        for (i in 0..randBetween(10, 100)) {
+        for (i in 0..randBetween(10, 20)) {
             val length = randBetween(5, 10).toFloat()
             val axis = randBetween(0, 2)
             addBox(Box(
                 id = generateId(),
                 position = Vector3f(
                     randBetween(-50, 50).toFloat(),
-                    -45f,
+                    -40f,
                     randBetween(-50, 50).toFloat()
                 ),
                 size = Vector3f(
@@ -148,7 +149,7 @@ class Server {
                     if (axis == 0) length else 1f
                 ),
                 affectedByPhysics = false,
-                mass = 0f,
+                mass = 30f,
                 textureId = Textures.METAL_ID,
                 textureMultiplier = 35.0
             ))
@@ -220,8 +221,6 @@ class Server {
         }
     }
 
-    private var lastJump = System.currentTimeMillis()
-
     /** Misc routines the server may do. */
     private fun globalUpdate() {
         // del bullets after 15 secs
@@ -245,16 +244,18 @@ class Server {
             val box = Box(
                 id = generateId(),
                 mass = 1f,
-                position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
+                position = player.collisionBox.position + Vector3f(0f, 0.6f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
                 size = Vector3f(0.1f, 0.0f, 0.0f),
                 textureId = Textures.RUBIK_ID,
                 textureMultiplier = 1.0,
                 bounceMultiplier = 0.8f,
                 isSphere = true
             )
+            player.health -= 1
+            network.send(Messages.SetHealth(player.health), player.connection)
             addBox(box)
             bulletsAddTimestamp[box] = System.currentTimeMillis()
-            box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
+            box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce) + Vector3f(0f, shotForce*0.1f, 0f))
         }
     }
 

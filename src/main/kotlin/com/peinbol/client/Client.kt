@@ -10,8 +10,6 @@ import javax.vecmath.Vector3f
  */
 class Client {
     companion object {
-        private val INPUT_SYNC_RATE = 50 // each how many millis will send the state
-
         @JvmStatic
         fun main(args: Array<String>) {
             val game = Client()
@@ -19,6 +17,7 @@ class Client {
         }
     }
 
+    private var lastSentInputState = Messages.InputState()
     private lateinit var physics: Physics
     private lateinit var window: Window
     private lateinit var network: Network.Client
@@ -39,6 +38,7 @@ class Client {
         // Init window
         window = Window()
         window.init()
+        window.registerUIElement(HealthUI::class.java, HealthUI())
         window.registerUIElement(CrosshairUI::class.java, CrosshairUI {
             val box = boxes[myBoxId]
             if (box != null) box.linearVelocity
@@ -56,14 +56,13 @@ class Client {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
-            physics.simulate(delta.toDouble(), false)
+            physics.simulate(delta.toDouble(), false, -1)
             window.draw()
         }
         window.destroy()
         network.close()
     }
 
-    private var lastBoxSync = System.currentTimeMillis()
     /** Called when a message from the server arrives. */
     private fun handleNetworkMessage(msg: Any) {
         when (msg) {
@@ -95,10 +94,12 @@ class Client {
             is Messages.BoxUpdateMotion -> {
                 val box = boxes[msg.id]
                 if (box != null) {
-                    if (true) {//myBoxId == -1/* || (box.id != myBoxId) || System.currentTimeMillis() - lastBoxSync > 2000*/) {
-                        lastBoxSync = System.currentTimeMillis()
-                        // only sync from server other boxes, as my box is updated locally
-                        // TODO: for player box, only update motion if its far from my motion.
+                    var shouldMove = true
+                    /*if (myBoxId == box.id) {
+                        // check based on synchronization?
+                        shouldMove = false
+                    }*/
+                    if (shouldMove) {
                         box.rotation = msg.rotation
                         box.position = msg.position
                         box.linearVelocity = msg.linearVelocity
@@ -114,6 +115,9 @@ class Client {
                     removeBox(theBox)
                 }
             }
+            is Messages.SetHealth -> {
+                window.getUIElement(HealthUI::class.java)!!.health = msg.health
+            }
         }
     }
 
@@ -121,7 +125,6 @@ class Client {
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
-
         val inputState = Messages.InputState(
             forward = window.isKeyPressed(GLFW_KEY_W),
             backwards = window.isKeyPressed(GLFW_KEY_S),
@@ -134,7 +137,6 @@ class Client {
             cameraY = window.cameraRotY
         )
 
-
         // sync camera pos (and delta). Pos is synced with myBoxId
         if (window.isKeyPressed(GLFW_KEY_U)) {
             if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
@@ -145,19 +147,27 @@ class Client {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            doPlayerMovement(playerBox, inputState, delta)
+            //doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
             window.cameraPosZ = playerBox.position.z
         }
 
-        window.cameraRotX -= mouseDY * 0.4f
-        window.cameraRotY -= mouseDX * 0.4f
+        val moveMillisStep = 200
+        val moveMillisAmp = 400f // lower: bigger strafe
+        val mouseDxAdd = if (inputState.forward || inputState.backwards || inputState.left || inputState.right) {
+            (timedOscillator(moveMillisStep) - moveMillisStep/2) / moveMillisAmp
+        } else {
+            0f
+        }
+        window.cameraRotX -= mouseDY * 0.4f// + mouseDxAdd*0.2f
+        window.cameraRotY -= (mouseDX * 0.4f) //+ mouseDxAdd
 
-        // send input state
-        if (System.currentTimeMillis() - lastInputStateSent > INPUT_SYNC_RATE) {
-            lastInputStateSent = System.currentTimeMillis()
+
+        // send input state if the keys changed
+        if (inputState != lastSentInputState) {
             network.send(inputState)
+            lastSentInputState = inputState
         }
     }
 

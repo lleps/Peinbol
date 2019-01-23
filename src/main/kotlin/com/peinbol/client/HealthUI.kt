@@ -1,5 +1,7 @@
 package com.peinbol.client
 
+import com.peinbol.timedOscillator
+import org.lwjgl.BufferUtils
 import org.lwjgl.nuklear.NkColor
 import org.lwjgl.nuklear.NkContext
 import org.lwjgl.nuklear.NkRect
@@ -12,26 +14,24 @@ import javax.vecmath.Vector3f
  * Draws the crosshair on the middle of the screen.
  * Crosshair size depends on the given velocity.
  */
-class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
+class HealthUI : NkUIDrawable {
 
-    companion object {
-        private const val CROSSHAIR_MIN_RADIUS = 30f
-        private const val CROSSHAIR_MAX_RADIUS = 60f
-    }
+    private val progressPtr = BufferUtils.createPointerBuffer(1).put(0, 220)
+
+    var health: Int = 100
 
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
         MemoryStack.stackPush().use { stack ->
-            val crosshairRingColor = NkColor.callocStack(stack).set(0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte())
             val crosshairCenterColor = NkColor.callocStack(stack).set(0xC6.toByte(), 0x28.toByte(), 0x28.toByte(), 0xFF.toByte())
-            var radius = CROSSHAIR_MIN_RADIUS
-            radius += velocitySupplier().length() * 3.5f
-            radius = radius.coerceAtMost(CROSSHAIR_MAX_RADIUS)
-            val screenCenterX = (screenWidth / 2f)
-            val screenCenterY = (screenHeight / 2f)
-            nkBeginTransparentWindow(ctx, "crosshair", screenCenterX-200f, screenCenterY-200f, 400f, 400f) {
-                nk_layout_row_static(ctx, 400f, 400, 1) // alloc some space to draw
-                nkDrawCircle(ctx, screenCenterX, screenCenterY, radius, 4f, crosshairRingColor)
-                nkDrawCircle(ctx, screenCenterX, screenCenterY, 1f, 3f, crosshairCenterColor)
+            val barWidth = 400f
+            val barHeight = 30f
+            nkBeginTransparentWindow(ctx, "health", (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f, barWidth, barHeight+10) {
+                nk_layout_row_dynamic(ctx, barHeight, 1)
+                progressPtr.clear().put(0, health.toLong())
+                ctx.style().progress().active().data().color().set(crosshairCenterColor)
+                ctx.style().progress().cursor_active().data().color().set(crosshairCenterColor)
+                ctx.style().progress().cursor_normal().data().color().set(crosshairCenterColor)
+                nk_progress(ctx, progressPtr, 100, false)
             }
         }
     }
@@ -47,6 +47,7 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
         val cmdBuffer = nk_window_get_canvas(ctx)!!
         nk_stroke_circle(
             cmdBuffer,
+            // must divide radius by 2 to use the "real"
             NkRect.callocStack().set(centerX - radius, centerY - radius, radius*2f, radius*2f),
             thickness,
             color
