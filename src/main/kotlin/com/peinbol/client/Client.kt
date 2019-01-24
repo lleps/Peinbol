@@ -58,7 +58,7 @@ class Client {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
-            physics.simulate(delta.toDouble(), false, -1)
+            physics.simulate(delta.toDouble(), false, myBoxId)
             window.draw()
         }
         window.destroy()
@@ -97,10 +97,10 @@ class Client {
                 val box = boxes[msg.id]
                 if (box != null) {
                     var shouldMove = true
-                    /*if (myBoxId == box.id) {
+                    if (myBoxId == box.id) {
                         // check based on synchronization?
                         shouldMove = false
-                    }*/
+                    }
                     if (shouldMove) {
                         box.rotation = msg.rotation
                         box.position = msg.position
@@ -167,7 +167,7 @@ class Client {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            //doPlayerMovement(playerBox, inputState, delta)
+            doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
             window.cameraPosZ = playerBox.position.z
