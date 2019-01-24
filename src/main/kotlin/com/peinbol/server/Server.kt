@@ -272,12 +272,12 @@ class Server {
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 200) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 60.0f
+            val shotForce = 120.0f
             val frontPos = 1.5f
             val box = Box(
                 id = generateId(),
                 mass = 1f,
-                position = player.collisionBox.position + Vector3f(0f, 0.6f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
+                position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
                 size = Vector3f(0.1f, 0.0f, 0.0f),
                 textureId = Textures.RUBIK_ID,
                 textureMultiplier = 1.0,
@@ -287,7 +287,7 @@ class Server {
             addBox(box)
             bulletsAddTimestamp[box] = System.currentTimeMillis()
             bulletEmitter[box] = player
-            box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce) + Vector3f(0f, shotForce*0.1f, 0f))
+            box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
         }
     }
 

@@ -73,8 +73,8 @@ class Physics(
         }*/
         val shape = if (box.isSphere) {
             SphereShape(box.size.x)
-        } else if (box.isCharacter) {
-            CapsuleShape(box.size.x/2f, box.size.y)
+        //} else if (box.isCharacter) {
+        //    CapsuleShape(box.size.x/2f, box.size.y)
         } else {
             BoxShape(box.size.withOps { scale(0.5f) })
         }
@@ -83,7 +83,7 @@ class Physics(
         if (box.affectedByPhysics) {
             shape.calculateLocalInertia(box.mass, inertia)
         } else {
-            shape.calculateLocalInertia(box.mass, inertia)
+            //shape.calculateLocalInertia(box.mass, inertia)
         }
         val constructionInfo = if (box.affectedByPhysics) {
             RigidBodyConstructionInfo(

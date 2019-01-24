@@ -6,8 +6,8 @@ import javax.vecmath.Vector3f
 /** To be processed by the server, and predicted by the client. */
 fun doPlayerMovement(box: Box, inputState: Messages.InputState, delta: Long) {
     val deltaSec = delta / 1000f
-    val force = 50f
-    val limit = if (inputState.walk && box.inGround) 3f else 8f
+    val force = 30f
+    val limit = if (inputState.walk) 2f else 5f
     box.rotation = Quat4f(0f, 0f, 0f, 1f)
     box.angularVelocity = Vector3f()
     // W,A,S,D

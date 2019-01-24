@@ -182,7 +182,7 @@ class Client {
         }
         window.cameraRotX -= mouseDY * 0.4f// + mouseDxAdd*0.2f
         window.cameraRotY -= (mouseDX * 0.4f) //+ mouseDxAdd
-        window.cameraRotZ += mouseDxAdd
+        //window.cameraRotZ += mouseDxAdd
 
         if (onDrugs) {
             window.fov = 30 + (timedOscillator(1000) / 1000f)*10f
