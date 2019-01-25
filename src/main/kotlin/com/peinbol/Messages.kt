@@ -36,6 +36,7 @@ object Messages {
         registerMessageType(5, SetHealth, SetHealth::class)
         registerMessageType(6, NotifyHit, NotifyHit::class)
         registerMessageType(7, ServerMessage, ServerMessage::class)
+        registerMessageType(8, Ping, Ping::class) // used as ping and pong
     }
 
     /** Wraps the message ID and their body */
@@ -58,15 +59,16 @@ object Messages {
         return type.read(wrapper.buf)
     }
 
-    /** Send a message to the given channel */
+    /** Send a message to the given channel. Return the number of bytes of the message. */
     @Suppress("UNCHECKED_CAST")
-    fun send(channel: Channel, obj: Any) {
+    fun send(channel: Channel, obj: Any): Int {
         val typeId = classesId[obj::class.java] ?: error("invalid obj class on send: ${obj::class.java}")
         val type = messageTypes[typeId]!! as MessageType<Any>
         val buf = channel.alloc().buffer(4 + type.bytes)
         buf.writeInt(typeId)
         type.write(obj, buf)
         channel.writeAndFlush(buf)
+        return type.bytes
     }
 
     // Messages
@@ -279,6 +281,7 @@ object Messages {
         }
     }
 
+    /** To notify when someone hits another player and apply corresponding visual effects. */
     class NotifyHit(
             val emitterBoxId: Int, // 4
             val victimBoxId: Int // 4
@@ -298,6 +301,20 @@ object Messages {
         }
     }
 
+    /** To check latency */
+    class Ping {
+        companion object : MessageType<Ping> {
+            override val bytes: Int
+                get() = 0
+
+            override fun write(msg: Ping, buf: ByteBuf) {
+            }
+
+            override fun read(buf: ByteBuf) = Ping()
+        }
+    }
+
+    /** To send chat messages to clients */
     class ServerMessage(
         val message: String // 1024
     ) {

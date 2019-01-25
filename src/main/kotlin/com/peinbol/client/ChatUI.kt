@@ -8,7 +8,7 @@ import org.lwjgl.nuklear.Nuklear.*
 class ChatUI : NkUIDrawable {
     companion object {
         private val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
-        private const val WIDTH_PER_CARACTER = 7.5f
+        private const val WIDTH_PER_CHARACTER = 8.25f
         private const val MSG_EXPIRY_MILLIS = 10 * 1000
     }
 
@@ -22,7 +22,7 @@ class ChatUI : NkUIDrawable {
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
         messages = messages.filter { System.currentTimeMillis() - it.timeOfCreation < MSG_EXPIRY_MILLIS }
         val longestMsg = messages.maxBy { it.msg.length }?.msg?.length ?: 1
-        val width = longestMsg * WIDTH_PER_CARACTER
+        val width = longestMsg * WIDTH_PER_CHARACTER
         val padding = 15f
         val x = screenWidth - width - padding
         val y = padding

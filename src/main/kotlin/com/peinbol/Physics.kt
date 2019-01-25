@@ -39,6 +39,10 @@ class Physics(
     private val boxes = mutableListOf<Box>()
     private var collisionCallback: (Box, Box) -> Unit = { _, _ -> }
 
+    /** Returns how many millis took the last simulation. */
+    var lastSimulationMillis: Float = 0f
+        private set
+
     fun init() {
         val broadphase = DbvtBroadphase()
         val collisionConfiguration = DefaultCollisionConfiguration()
@@ -57,20 +61,6 @@ class Physics(
     fun register(box: Box) {
         if (box in boxes) return
         boxes += box
-        /*if (box.isCharacter) {
-            val ghostObject = PairCachingGhostObject()
-            ghostObject.setWorldTransform(Transform(Matrix4f(Quat4f(0f, 0f, 0f, 1f), box.position.get(), 1f)))
-            val capsule = CapsuleShape(box.size.x/2f, box.size.y)
-            ghostObject.collisionShape = capsule
-            ghostObject.collisionFlags = CollisionFlags.CHARACTER_OBJECT
-            val character = KinematicCharacterController(ghostObject, capsule, 0.6f)
-            world.addCollisionObject(
-                ghostObject,
-                CollisionFilterGroups.CHARACTER_FILTER,
-                CollisionFilterGroups.DEFAULT_FILTER or CollisionFilterGroups.STATIC_FILTER
-            )
-            world.addAction(character)
-        }*/
         val shape = if (box.isSphere) {
             SphereShape(box.size.x)
         //} else if (box.isCharacter) {
@@ -126,6 +116,7 @@ class Physics(
     }
 
     fun simulate(delta: Double, updateObjs: Boolean, updateId: Int = -1) {
+        val start = System.nanoTime()
         world.stepSimulation(delta.toFloat() / 1000f)
         // now copy to the objects pos the real data
         val transform = Transform()
@@ -163,5 +154,6 @@ class Physics(
                 }
             }
         }
+        lastSimulationMillis = (System.nanoTime() - start) / 1000000f
     }
 }

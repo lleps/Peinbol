@@ -31,6 +31,36 @@ class Network {
 
     /** Network client implementation. */
     class Client(val host: String, val port: Int) {
+        private var ppsCounter = 0
+        var pps: Int = 0
+            private set
+
+        private var bytesPerSecInCounter = 0
+        var bytesPerSecIn = 0
+            private set
+
+        private var bytesPerSecOutCounter = 0
+        var bytesPerSecOut = 0
+            private set
+
+        private var sentPingTimestamp = 0L // to grab lantecy
+        private var lastPingSentSec = 0L // to send a ping request each 1 sec
+        var latency: Int = 0
+            private set
+
+        private var lastStatsSet = 0L
+        /** Copy to per-second stats variables and reset counter if a second passed. */
+        private fun checkStats() {
+            if (System.currentTimeMillis() - lastStatsSet >= 1000) {
+                lastStatsSet = System.currentTimeMillis()
+                pps = ppsCounter
+                ppsCounter = 0
+                bytesPerSecIn = bytesPerSecInCounter
+                bytesPerSecInCounter = 0
+                bytesPerSecOut = bytesPerSecOutCounter
+                bytesPerSecOutCounter = 0
+            }
+        }
 
         /** This handler decodes MessageWrapper instances into the message objects, and push them to the queue. */
         private inner class ClientNetworkHandler : ChannelInboundHandlerAdapter() {
@@ -39,7 +69,24 @@ class Network {
 
                 try {
                     val msg = Messages.receive(nettyMsg)
-                    messagesQueue.add(msg)
+                    if (msg !is Messages.Ping) { // regular msg, add to queue
+                        messagesQueue.add(msg)
+                    } else {
+                        // grab latency and allow to send a new ping
+                        latency = (System.currentTimeMillis() - sentPingTimestamp).toInt()
+                        sentPingTimestamp = 0L
+                    }
+
+                    // each 1 sec send ping if not waiting for a response
+                    if (System.currentTimeMillis() / 1000 != lastPingSentSec && sentPingTimestamp == 0L) {
+                        lastPingSentSec = System.currentTimeMillis() / 1000
+                        sentPingTimestamp = System.currentTimeMillis()
+                        Messages.send(ctx.channel(), Messages.Ping())
+                    }
+
+                    ppsCounter++
+                    bytesPerSecInCounter += nettyMsg.buf.capacity()
+                    checkStats()
                 } finally {
                     nettyMsg.buf.release()
                 }
@@ -108,7 +155,9 @@ class Network {
 
         /** Send [message] to the server. */
         fun send(message: Any) {
-            Messages.send(channel, message)
+            val bytes = Messages.send(channel, message)
+            bytesPerSecOutCounter += bytes
+            checkStats()
         }
 
         /** Poll all messages, invoke callbacks. */
@@ -143,7 +192,12 @@ class Network {
             val wrapper = rawMsg as Messages.MessageWrapper
             try {
                 val msg = Messages.receive(wrapper)
-                queue.offer(EnqueuedEvent(EventType.MESSAGE, this, msg))
+                if (msg !is Messages.Ping) {
+                    queue.offer(EnqueuedEvent(EventType.MESSAGE, this, msg))
+                } else {
+                    // Send back a "Ping" so the client grab the RTT
+                    Messages.send(ctx.channel(), Messages.Ping())
+                }
             } finally {
                 wrapper.buf.release()
             }

@@ -40,6 +40,13 @@ class Client {
         // Init window
         window = Window()
         window.init()
+
+        txts // init txts variable when opengl is already loaded, otherwise jvm crash
+        physics = Physics(Physics.Mode.CLIENT)
+        physics.init()
+
+        // setup ui
+        window.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
         window.registerUIElement(HealthUI::class.java, HealthUI())
         window.registerUIElement(CrosshairUI::class.java, CrosshairUI {
             val box = boxes[myBoxId]
@@ -47,10 +54,6 @@ class Client {
             else Vector3f()
         })
         window.registerUIElement(ChatUI::class.java, ChatUI())
-
-        txts // init txts variable when opengl is already loaded, otherwise jvm crash
-        physics = Physics(Physics.Mode.CLIENT)
-        physics.init()
 
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {

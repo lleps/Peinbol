@@ -61,6 +61,12 @@ class Window {
     var mouseDeltaY: Float = 0f
         private set
 
+    var fps: Int = 0
+        private set
+
+    var lastDrawMillis: Float = 0f
+        private set
+
     private var window: Long = 0
     private val textures = mutableMapOf<Int, Texture>()
     private val uiDrawer = NkGLBackend()
@@ -125,6 +131,7 @@ class Window {
         glfwMakeContextCurrent(window)
         glfwSwapInterval(1) // Enable v-sync
         glfwShowWindow(window)
+        glfwSetWindowTitle(window, "Snower")
         GL.createCapabilities()
 
         uiDrawer.init(window)
@@ -160,6 +167,7 @@ class Window {
     private var transformBuffer = BufferUtils.createFloatBuffer(16)
 
     fun draw() {
+        val start = System.nanoTime()
         // Get mouse movement
         if (mouseVisible) {
             stackPush().use { stack ->
@@ -241,19 +249,18 @@ class Window {
             glPopMatrix()
         }
 
+
+        // Draw UI
+        uiDrawer.draw(window)
         // Stats
         fpsCount++
         if (System.currentTimeMillis() > countFpsExpiry) {
-            glfwSetWindowTitle(window,
-                "%d FPS | pos: %.03f %.03f %.03f  cam: %.03f %.03f %.03f"
-                    .format(fpsCount, cameraPosX, cameraPosY, cameraPosZ, cameraRotX, cameraRotY, cameraRotZ)
-            )
+            fps = fpsCount.toInt()
             fpsCount = 0
             countFpsExpiry = System.currentTimeMillis() + 1000
         }
 
-        // Draw UI
-        uiDrawer.draw(window)
+        lastDrawMillis = (System.nanoTime() - start) / 1000000f
 
         // Window sync
         glfwSwapBuffers(window) // swap the color buffers
