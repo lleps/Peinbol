@@ -1,6 +1,7 @@
 package com.peinbol.server
 
 import com.peinbol.*
+import java.util.*
 import javax.vecmath.Vector3f
 
 /**
@@ -175,31 +176,42 @@ class Server {
             val shotTarget = playersByConnections.values.firstOrNull { it.collisionBox == other }
             val shotEmitter = bulletEmitter[sphere]
 
-            if (shotEmitter != null) {
-                if (shotTarget != null) {
-                    shotTarget.health -= 10
-                    network.send(Messages.SetHealth(shotTarget.health), shotTarget.connection)
-                    network.broadcast(Messages.NotifyHit(shotEmitter.collisionBox.id, shotTarget.collisionBox.id))
-                    if (shotTarget.health <= 0) {
-                        shotTarget.connection.channel.close()
-                        val messageFormat = listOf(
-                            "{killer} se la dio a {victim}",
-                            "{killer} no tuvo piedad con {victim}",
-                            "{victim} no midio las consecuencias al meterse con {killer}",
-                            "{victim} no vio venir a{killer}",
-                            "la bala de {killer} atravezo la cabeza de {victim}",
-                            "{killer} esta dominando a {victim}"
-                        ).random()
-                        val msg = messageFormat
-                            .replace("{victim}", shotTarget.name)
-                            .replace("{killer}", shotEmitter.name)
-                        network.broadcast(Messages.ServerMessage(msg))
-                    }
-                }
+            if (shotEmitter != null && shotTarget != null) {
+                onPlayerHitPlayer(shotEmitter, shotTarget, sphere)
             }
             removeBox(sphere)
             bulletsAddTimestamp.remove(sphere)
         }
+    }
+
+    private fun onPlayerHitPlayer(emitter: Player, target: Player, ball: Box) {
+        target.health -= 10
+        network.send(Messages.SetHealth(target.health), target.connection)
+        network.broadcast(Messages.NotifyHit(emitter.collisionBox.id, target.collisionBox.id))
+        if (target.health <= 0) {
+            val messageFormat = listOf(
+                "{killer} se la dio a {victim}",
+                "{killer} no tuvo piedad con {victim}",
+                "{victim} no midio las consecuencias al meterse con {killer}",
+                "{victim} no vio venir a{killer}",
+                "la bala de {killer} atravezo la cabeza de {victim}",
+                "{killer} esta dominando a {victim}"
+            ).random()
+            val msg = messageFormat
+                .replace("{victim}", target.name)
+                .replace("{killer}", emitter.name)
+            broadcastMessage(msg)
+
+            target.health = 100
+            network.send(Messages.SetHealth(target.health), target.connection)
+
+            target.collisionBox.angularVelocity = Vector3f()
+            target.collisionBox.position = Vector3f(randBetween(-20, 20).toFloat(), 0f, randBetween(-20, 20).toFloat())
+        }
+    }
+
+    private fun broadcastMessage(message: String) {
+        network.broadcast(Messages.ServerMessage(message))
     }
 
     /** Update boxes motion for all players */

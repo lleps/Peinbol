@@ -32,7 +32,7 @@ class Box(
                 val transform = Transform()
                 val rotation = Quat4f()
                 body.motionState.getWorldTransform(transform).getRotation(rotation)
-                body.motionState = DefaultMotionState(Transform(Matrix4f(rotation.get(), position.get(), 1f)))
+                body.motionState = DefaultMotionState(Transform(Matrix4f(rotation.get(), value.get(), 1f)))
             }
             field = value.get()
         }
