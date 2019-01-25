@@ -63,7 +63,7 @@ class Client {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
-            physics.simulate(delta.toDouble(), false, -1)
+            physics.simulate(delta.toDouble(), false, myBoxId)
             window.draw()
         }
         window.destroy()
@@ -103,8 +103,14 @@ class Client {
                 if (box != null) {
                     var shouldMove = true
                     if (myBoxId == box.id) {
-                        // check based on synchronization?
-                       // shouldMove = false
+                        val newPos = Vector3f(msg.position)
+                        // sync pos only if they report different.
+                        // this is sensible to latency.
+                        if (boxes[myBoxId]!!.position.distance3D(newPos) >= 0.5f) {
+                            shouldMove = true
+                        } else {
+                            shouldMove = false
+                        }
                     }
                     if (shouldMove) {
                         box.rotation = msg.rotation
@@ -175,7 +181,7 @@ class Client {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            //doPlayerMovement(playerBox, inputState, delta)
+            doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
             window.cameraPosZ = playerBox.position.z

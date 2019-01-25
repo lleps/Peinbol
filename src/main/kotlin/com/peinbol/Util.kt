@@ -5,6 +5,7 @@ import java.util.*
 import javax.vecmath.Tuple3f
 import javax.vecmath.Tuple4f
 import javax.vecmath.Vector3f
+import kotlin.math.sqrt
 
 fun generateId(): Int = randBetween(0, 0x7FFFFFFF)
 
@@ -58,6 +59,13 @@ inline fun Vector3f.withOps(block: Vector3f.() -> Unit): Vector3f {
     val ret = this.get()
     ret.block()
     return ret
+}
+
+fun Vector3f.distance3D(vector: Vector3f): Float {
+    val dx = vector.x - x
+    val dy = vector.y - y
+    val dz = vector.z - z
+    return sqrt(dx * dx + dy * dy + dz * dz)
 }
 
 // Get front vector for the given angle
