@@ -2,9 +2,9 @@ package com.peinbol
 
 import com.bulletphysics.collision.broadphase.DbvtBroadphase
 import com.bulletphysics.collision.dispatch.CollisionDispatcher
+import com.bulletphysics.collision.dispatch.CollisionObject
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration
 import com.bulletphysics.collision.shapes.BoxShape
-import com.bulletphysics.collision.shapes.CapsuleShape
 import com.bulletphysics.collision.shapes.SphereShape
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld
 import com.bulletphysics.dynamics.DynamicsWorld
@@ -15,10 +15,6 @@ import com.bulletphysics.linearmath.DefaultMotionState
 import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Matrix4f
 import javax.vecmath.Vector3f
-import com.bulletphysics.collision.dispatch.CollisionObject
-import com.bulletphysics.collision.narrowphase.ManifoldPoint
-import com.bulletphysics.collision.narrowphase.PersistentManifold
-
 
 
 class Physics(
@@ -102,11 +98,12 @@ class Physics(
         }
         box.rigidBody = body
         if (!box.affectedByPhysics) {
-            body.friction = 0.95f
+            body.friction = if (box.isCharacter) 0.01f else 0.95f
         }
         world.addRigidBody(body)
         body.userPointer = box
     }
+
     fun unRegister(box: Box) {
         if (box !in boxes) return
         boxes -= box

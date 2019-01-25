@@ -217,7 +217,7 @@ class Server {
     /** Update boxes motion for all players */
     private fun broadcastCurrentWorldState() {
         for (box in boxes) {
-            if (box.rigidBody!!.isActive) {
+            if (box.shouldTransmit && box.rigidBody!!.isActive) {
                 network.broadcast(Messages.BoxUpdateMotion(
                     id = box.id,
                     position = box.position,
@@ -225,6 +225,7 @@ class Server {
                     angularVelocity = box.angularVelocity,
                     rotation = box.rotation
                 ))
+                if (box.isSphere) box.shouldTransmit = false // transmit spheres only once, to save pps
             }
         }
     }

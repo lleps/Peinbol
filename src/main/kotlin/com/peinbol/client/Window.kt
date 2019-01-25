@@ -107,7 +107,7 @@ class Window {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0)
 
         val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
         width = vidmode!!.width()
@@ -168,19 +168,6 @@ class Window {
 
     fun draw() {
         val start = System.nanoTime()
-        // Get mouse movement
-        if (mouseVisible) {
-            stackPush().use { stack ->
-                val x = stack.mallocDouble(1)
-                val y = stack.mallocDouble(1)
-                glfwGetCursorPos(window, x, y)
-                val centerX = width / 2f
-                val centerY = height / 2f
-                mouseDeltaX = (x.get(0) - centerX).toFloat()
-                mouseDeltaY = (y.get(0) - centerY).toFloat()
-                glfwSetCursorPos(window, centerX.toDouble(), centerY.toDouble())
-            }
-        }
 
         val skyColor = Color(152.0 / 255.0, 209.0 / 255.0, 214.0 / 255.0)
         glClearColor(
@@ -263,8 +250,22 @@ class Window {
         lastDrawMillis = (System.nanoTime() - start) / 1000000f
 
         // Window sync
-        glfwSwapBuffers(window) // swap the color buffers
+        glfwSwapBuffers(window)
+
+        // on next frame, get the fresh new events.
         glfwPollEvents()
+        if (mouseVisible) {
+            stackPush().use { stack ->
+                val x = stack.mallocDouble(1)
+                val y = stack.mallocDouble(1)
+                glfwGetCursorPos(window, x, y)
+                val centerX = width / 2f
+                val centerY = height / 2f
+                mouseDeltaX = (x.get(0) - centerX).toFloat()
+                mouseDeltaY = (y.get(0) - centerY).toFloat()
+                glfwSetCursorPos(window, centerX.toDouble(), centerY.toDouble())
+            }
+        }
     }
 
     /** Set the mouse visible (i.e for UI) or invisible, for FPS camera */

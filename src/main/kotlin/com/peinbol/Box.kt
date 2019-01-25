@@ -23,7 +23,8 @@ class Box(
     val textureMultiplier: Double = 1.0,
     val bounceMultiplier: Float = 0f,
     val isSphere: Boolean = false,
-    val isCharacter: Boolean = false
+    val isCharacter: Boolean = false,
+    var shouldTransmit: Boolean = true // certain objects may be transmitted only once, to save cpu (i.e balls)
 ) {
     var position: Vector3f = position
         set(value) {

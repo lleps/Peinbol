@@ -106,10 +106,10 @@ class Client {
                         val newPos = Vector3f(msg.position)
                         // sync pos only if they report different.
                         // this is sensible to latency.
-                        if (boxes[myBoxId]!!.position.distance3D(newPos) >= 0.5f) {
+                        if (boxes[myBoxId]!!.position.distance3D(newPos) >= 1f) {
                             shouldMove = true
                         } else {
-                            shouldMove = false
+                            //shouldMove = false
                         }
                     }
                     if (shouldMove) {
@@ -181,9 +181,12 @@ class Client {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
+            val vel = playerBox.linearVelocity.length()
+            val velOscillator = 0.5f - (timedOscillator(250) / 250f)
             doPlayerMovement(playerBox, inputState, delta)
+            //window.fov = 30f + vel*0.7f
             window.cameraPosX = playerBox.position.x
-            window.cameraPosY = playerBox.position.y + 0.8f
+            window.cameraPosY = playerBox.position.y + 0.8f// + velOscillator*vel*0.07f
             window.cameraPosZ = playerBox.position.z
         }
 
@@ -194,8 +197,8 @@ class Client {
         } else {
             0f
         }
-        window.cameraRotX -= mouseDY * 0.4f// + mouseDxAdd*0.2f
-        window.cameraRotY -= (mouseDX * 0.4f) //+ mouseDxAdd
+        window.cameraRotX -= mouseDY * 0.4f
+        window.cameraRotY -= mouseDX * 0.4f
         //window.cameraRotZ += mouseDxAdd
 
         if (onDrugs) {

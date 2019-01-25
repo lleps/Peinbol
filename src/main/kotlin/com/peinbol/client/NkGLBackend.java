@@ -236,7 +236,10 @@ public class NkGLBackend {
     }
 
     private void setupContext() {
-        String NK_SHADER_VERSION = Platform.get() == Platform.MACOSX ? "#version 150\n" : "#version 150\n";
+        String NK_SHADER_VERSION =
+                Platform.get() == Platform.MACOSX || Platform.get() == Platform.WINDOWS
+                        ? "#version 150\n"
+                        : "#version 300 es\n";
         String vertex_shader =
                NK_SHADER_VERSION +
                         "uniform mat4 ProjMtx;\n" +
@@ -270,16 +273,16 @@ public class NkGLBackend {
         glCompileShader(vert_shdr);
         glCompileShader(frag_shdr);
         if (glGetShaderi(vert_shdr, GL_COMPILE_STATUS) != GL_TRUE) {
-            //throw new IllegalStateException();
+            throw new IllegalStateException();
         }
         if (glGetShaderi(frag_shdr, GL_COMPILE_STATUS) != GL_TRUE) {
-            //throw new IllegalStateException();
+            throw new IllegalStateException();
         }
         glAttachShader(prog, vert_shdr);
         glAttachShader(prog, frag_shdr);
         glLinkProgram(prog);
         if (glGetProgrami(prog, GL_LINK_STATUS) != GL_TRUE) {
-            //throw new IllegalStateException();
+            throw new IllegalStateException();
         }
 
         uniform_tex = glGetUniformLocation(prog, "Texture");
