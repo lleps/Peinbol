@@ -46,6 +46,8 @@ class Client {
             if (box != null) box.linearVelocity
             else Vector3f()
         })
+        window.registerUIElement(ChatUI::class.java, ChatUI())
+
         txts // init txts variable when opengl is already loaded, otherwise jvm crash
         physics = Physics(Physics.Mode.CLIENT)
         physics.init()
@@ -58,7 +60,7 @@ class Client {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
-            physics.simulate(delta.toDouble(), false, myBoxId)
+            physics.simulate(delta.toDouble(), false, -1)
             window.draw()
         }
         window.destroy()
@@ -99,7 +101,7 @@ class Client {
                     var shouldMove = true
                     if (myBoxId == box.id) {
                         // check based on synchronization?
-                        shouldMove = false
+                       // shouldMove = false
                     }
                     if (shouldMove) {
                         box.rotation = msg.rotation
@@ -130,6 +132,9 @@ class Client {
                         victimBox.theColor = Color4f(1f, 1f, 1f, 1f)
                     }
                 }
+            }
+            is Messages.ServerMessage -> {
+                window.getUIElement(ChatUI::class.java)!!.addMessage(msg.message)
             }
         }
     }
@@ -167,7 +172,7 @@ class Client {
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
-            doPlayerMovement(playerBox, inputState, delta)
+            //doPlayerMovement(playerBox, inputState, delta)
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f
             window.cameraPosZ = playerBox.position.z

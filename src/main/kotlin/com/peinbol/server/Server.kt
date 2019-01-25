@@ -20,6 +20,7 @@ class Server {
     }
 
     private class Player(
+        val name: String,
         val connection: Network.PlayerConnection,
         val collisionBox: Box,
         var inputState: Messages.InputState,
@@ -181,6 +182,18 @@ class Server {
                     network.broadcast(Messages.NotifyHit(shotEmitter.collisionBox.id, shotTarget.collisionBox.id))
                     if (shotTarget.health <= 0) {
                         shotTarget.connection.channel.close()
+                        val messageFormat = listOf(
+                            "{killer} se la dio a {victim}",
+                            "{killer} no tuvo piedad con {victim}",
+                            "{victim} no midio las consecuencias al meterse con {killer}",
+                            "{victim} no vio venir a{killer}",
+                            "la bala de {killer} atravezo la cabeza de {victim}",
+                            "{killer} esta dominando a {victim}"
+                        ).random()
+                        val msg = messageFormat
+                            .replace("{victim}", shotTarget.name)
+                            .replace("{killer}", shotEmitter.name)
+                        network.broadcast(Messages.ServerMessage(msg))
                     }
                 }
             }
@@ -230,12 +243,28 @@ class Server {
         addBox(playerBox)
 
         // build player
-        val player = Player(connection, playerBox, Messages.InputState())
+        val name = listOf(
+            "Bugger",
+            "Cabbie",
+            "Rooster",
+            "Prometheus",
+            "Hyper",
+            "Midas",
+            "Thrasher",
+            "Zod",
+            "CoolDog",
+            "CodeExia",
+            "IceDog",
+            "Shay",
+            "Prone"
+        ).random()
+        val player = Player(name, connection, playerBox, Messages.InputState())
         playersByConnections[connection] = player
 
         // stream current boxes and spawn
         for (worldBox in boxes) network.send(buildStreamBoxMsg(worldBox), connection)
         network.send(Messages.Spawn(playerBox.id), connection)
+        network.broadcast(Messages.ServerMessage("$name se conecto."))
     }
 
     private fun handleDisconnection(connection: Network.PlayerConnection) {
@@ -243,6 +272,7 @@ class Server {
         println("Player disconnected: $connection")
         playersByConnections.remove(connection)
         removeBox(player.collisionBox)
+        network.broadcast(Messages.ServerMessage("${player.name} se desconecto."))
     }
 
     private fun handleClientMessage(connection: Network.PlayerConnection, message: Any) {

@@ -100,8 +100,8 @@ class Window {
         glfwDefaultWindowHints() // optional, the current window hints are already the default
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)
-        //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
-        //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1)
 
         val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
         width = vidmode!!.width()

@@ -35,6 +35,7 @@ object Messages {
         registerMessageType(4, RemoveBox, RemoveBox::class)
         registerMessageType(5, SetHealth, SetHealth::class)
         registerMessageType(6, NotifyHit, NotifyHit::class)
+        registerMessageType(7, ServerMessage, ServerMessage::class)
     }
 
     /** Wraps the message ID and their body */
@@ -293,6 +294,40 @@ object Messages {
 
             override fun read(buf: ByteBuf): NotifyHit {
                 return NotifyHit(buf.readInt(), buf.readInt())
+            }
+        }
+    }
+
+    class ServerMessage(
+        val message: String // 1024
+    ) {
+        companion object : MessageType<ServerMessage> {
+            override val bytes: Int
+                get() = 1024
+
+            override fun write(msg: ServerMessage, buf: ByteBuf) {
+                var strTruncated = ""
+                if (msg.message.length > 512) {
+                    strTruncated = msg.message.substring(0, 512)
+                } else if (msg.message.length < 512) {
+                    strTruncated = msg.message
+                    while (strTruncated.length < 512) {
+                        strTruncated += " "
+                    }
+                }
+
+                for (char in strTruncated) {
+                    buf.writeChar(char.toInt())
+                }
+            }
+
+            override fun read(buf: ByteBuf): ServerMessage {
+                var str = ""
+                var i = 0
+                while (i++ < 512) {
+                    str += buf.readChar()
+                }
+                return ServerMessage(str.trim())
             }
         }
     }

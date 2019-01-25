@@ -15,14 +15,16 @@ inline fun nkBeginTransparentWindow(
     w: Float,
     h: Float,
     flags: Int = Nuklear.NK_WINDOW_NO_SCROLLBAR,
+    background: NkColor = Nuklear.nk_rgba(0, 0, 0, 0, NkColor.callocStack()),
     block: () -> Unit
 ) {
     val style = ctx.style()
-    Nuklear.nk_style_push_color(ctx, style.window().background(), Nuklear.nk_rgba(0, 0, 0, 0, NkColor.callocStack()))
+
+    Nuklear.nk_style_push_color(ctx, style.window().background(), background)
     Nuklear.nk_style_push_style_item(
         ctx,
         style.window().fixed_background(),
-        Nuklear.nk_style_item_color(Nuklear.nk_rgba(0, 0, 0, 0, NkColor.callocStack()), NkStyleItem.callocStack())
+        Nuklear.nk_style_item_color(background, NkStyleItem.callocStack())
     )
     val rect = NkRect.mallocStack()
 
