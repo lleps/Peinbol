@@ -13,11 +13,6 @@ class ClientStatsUI(
     private val physics: Physics,
     private val network: Network.Client
 ) : NkUIDrawable {
-    companion object {
-        private val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
-        private const val WIDTH_PER_CARACTER = 7.5f
-        private const val MSG_EXPIRY_MILLIS = 10 * 1000
-    }
 
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
         val statCount = 2 // cpu+net fps 60  phys xms   draw xms |  ping 50ms  out 25kb/s  in 25/s
