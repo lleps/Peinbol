@@ -193,7 +193,7 @@ class Server {
                 "{killer} se la dio a {victim}",
                 "{killer} no tuvo piedad con {victim}",
                 "{victim} no midio las consecuencias al meterse con {killer}",
-                "{victim} no vio venir a{killer}",
+                "{victim} no vio venir a {killer}",
                 "la bala de {killer} atravezo la cabeza de {victim}",
                 "{killer} esta dominando a {victim}"
             ).random()
@@ -276,7 +276,7 @@ class Server {
         // stream current boxes and spawn
         for (worldBox in boxes) network.send(buildStreamBoxMsg(worldBox), connection)
         network.send(Messages.Spawn(playerBox.id), connection)
-        network.broadcast(Messages.ServerMessage("$name se conecto."))
+        broadcastMessage("$name se conecto.")
     }
 
     private fun handleDisconnection(connection: Network.PlayerConnection) {
@@ -284,7 +284,7 @@ class Server {
         println("Player disconnected: $connection")
         playersByConnections.remove(connection)
         removeBox(player.collisionBox)
-        network.broadcast(Messages.ServerMessage("${player.name} se desconecto."))
+        broadcastMessage("${player.name} se desconecto.")
     }
 
     private fun handleClientMessage(connection: Network.PlayerConnection, message: Any) {
