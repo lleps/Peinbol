@@ -29,7 +29,9 @@ class Client {
     private var mouseDownMillis: Long = 0
     private val boxes = hashMapOf<Int, Box>()
     private var myBoxId = -1
-    private lateinit var playerBoxAudio: AudioSource
+    private lateinit var notifyHitAudio: AudioSource
+    private lateinit var shootAudio: AudioSource
+    private lateinit var splashAudio: AudioSource
 
     fun init(args: Array<String>) {
         val host = args[0]
@@ -90,13 +92,6 @@ class Client {
                 val myBox = boxes[myBoxId]
                 if (myBox != null) {
                     window.boxes -= myBox
-                    playerBoxAudio = AudioSource(
-                        position = myBox.position,
-                        volume = 1f,
-                        audioId = Audios.WALK,
-                        ratio = 3f
-                    )
-                    audioManager.registerSource(playerBoxAudio)
                 }
             }
             is Messages.BoxAdded -> {
@@ -152,11 +147,21 @@ class Client {
             }
             is Messages.NotifyHit -> {
                 val victimBox = boxes[msg.victimBoxId]
-                if (victimBox != null) {
+                val emitterBox = boxes[msg.emitterBoxId]
+
+                if (victimBox != null && emitterBox != null) {
                     victimBox.theColor = Color4f(1f, 0f, 0f, 1f)
 
+                    notifyHitAudio = AudioSource(
+                            position = emitterBox.position,
+                            volume = 1f,
+                            audioId = Audios.HIT,
+                            ratio = 2f
+                    )
+                    audioManager.registerSource(notifyHitAudio, 0)
+
                     thread {
-                        Thread.sleep(100)
+                        Thread.sleep(150)
                         victimBox.theColor = Color4f(1f, 1f, 1f, 1f)
                     }
                 }
@@ -172,6 +177,7 @@ class Client {
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
+
         val inputState = Messages.InputState(
             forward = window.isKeyPressed(GLFW_KEY_W),
             backwards = window.isKeyPressed(GLFW_KEY_S),
@@ -198,14 +204,14 @@ class Client {
             }
         }
         if (window.isKeyPressed(GLFW_KEY_L)) {
-            if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
+            if (System.currentTimeMillis() - lastCursorModeSwitch > 150) {
                 lastCursorModeSwitch = System.currentTimeMillis()
                 audioManager.registerSource(AudioSource(
                     position = Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ),
                     volume = 1f,
-                    audioId = Audios.WALK,
-                    ratio = 3f
-                ))
+                    audioId = Audios.HIT,
+                    ratio = 5f
+                ), 1)
             }
         }
 
@@ -215,13 +221,9 @@ class Client {
             val velOscillator = 0.5f - (timedOscillator(250) / 250f)
             doPlayerMovement(playerBox, inputState, delta)
             //window.fov = 30f + vel*0.7f
-            playerBoxAudio.position = playerBox.position.get()
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f// + velOscillator*vel*0.07f
             window.cameraPosZ = playerBox.position.z
-            playerBoxAudio.volume = (vel*0.2f).coerceAtMost(1f)
-            playerBoxAudio.pitch = (vel*0.4f).coerceAtMost(1f)
-            debug("velocity: ${vel*0.1f}")
         }
 
         val moveMillisStep = 200
@@ -239,18 +241,49 @@ class Client {
             window.fov = 30 + (timedOscillator(1000) / 1000f)*10f
             window.aspectRatioMultiplier = 0.8f + (timedOscillator(1200) / 1200)
         }
+
         // send input state if the keys changed
         if (inputState != lastSentInputState) {
             network.send(inputState)
             lastSentInputState = inputState
         }
+
+        for ((box, source) in playerSources) {
+            if (box.isCharacter) {
+                val vel = box.linearVelocity.length()
+
+                source.position = box.position
+                source.volume = (vel * 0.2f).coerceAtMost(1f)
+                source.pitch = (vel * 0.4f).coerceAtMost(1f)
+            }
+        }
     }
+
+    private val playerSources = hashMapOf<Box, AudioSource>()
 
     private fun addBox(box: Box) {
         if (box.id !in boxes) {
             boxes[box.id] = box
             physics.register(box)
             window.boxes += box
+
+            if (box.isCharacter) {
+                playerSources[box] = AudioSource(
+                        position = box.position,
+                        volume = 1f,
+                        audioId = Audios.WALK,
+                        ratio = 3f
+                )
+                audioManager.registerSource(playerSources[box]!!, 1)
+            } else if (box.isSphere) {
+                shootAudio = AudioSource(
+                        position = box.position,
+                        volume = 0.5f,
+                        audioId = Audios.SHOOT,
+                        ratio = 2f
+                )
+                audioManager.registerSource(shootAudio, 0)
+            }
         }
     }
 
@@ -259,6 +292,19 @@ class Client {
             boxes.remove(box.id)
             physics.unRegister(box)
             window.boxes -= box
+
+            if (box.isCharacter) {
+                audioManager.unregisterSource(playerSources[box]!!)
+                playerSources.remove(box)
+            } else if (box.isSphere) {
+                splashAudio = AudioSource(
+                        position = box.position,
+                        volume = 1f,
+                        audioId = Audios.SPLASH,
+                        ratio = 2f
+                )
+                audioManager.registerSource(splashAudio, 0)
+            }
         }
     }
 

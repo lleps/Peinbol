@@ -72,7 +72,7 @@ class Server {
         for (i in 0..20) {
             val box = Box(
                 id = generateId(),
-                mass = 1f,
+                mass = 3f,
                 position = Vector3f(
                     randBetween(-40, 40).toFloat(),
                     randBetween(-5, 5).toFloat(),
@@ -315,11 +315,11 @@ class Server {
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 200) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 120.0f
+            val shotForce = 360.0f
             val frontPos = 1.5f
             val box = Box(
                 id = generateId(),
-                mass = 1f,
+                mass = 3f,
                 position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
                 size = Vector3f(0.1f, 0.0f, 0.0f),
                 textureId = Textures.RUBIK_ID,

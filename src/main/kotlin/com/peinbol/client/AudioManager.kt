@@ -40,12 +40,12 @@ class AudioManager {
         }
     }
 
-    fun registerSource(source: AudioSource) {
+    fun registerSource(source: AudioSource, loop: Int) {
         if (source in sources) return
         val bufferForId = audioBuffers[source.audioId] ?: error("can't get buffer for audio id: ${source.audioId}")
         val sourcePointer = alGenSources()
         alSourcei(sourcePointer, AL_BUFFER, bufferForId)
-        alSourcei(sourcePointer, AL_LOOPING, AL_TRUE)
+        alSourcei(sourcePointer, AL_LOOPING, loop)
         source.sourceId = sourcePointer
         alSourcePlay(sourcePointer)
         sources.add(source)
