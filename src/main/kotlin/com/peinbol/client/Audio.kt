@@ -1,5 +1,6 @@
 package com.peinbol.client
 
+import com.peinbol.timedOscillator
 import org.lwjgl.openal.AL
 import org.lwjgl.openal.AL10.*
 import org.lwjgl.openal.ALC
@@ -35,7 +36,7 @@ class Audio {
             val channelsBuffer = stack.mallocInt(1)
             val sampleRateBuffer = stack.mallocInt(1)
 
-            rawAudioBuffer = stb_vorbis_decode_filename("/media/lleps/Compartido/Dev/KotlinFun/src/main/resources/steps.ogg", channelsBuffer, sampleRateBuffer)
+            rawAudioBuffer = stb_vorbis_decode_filename("D:\\Dev\\KotlinFun\\src\\main\\resources\\steps.ogg", channelsBuffer, sampleRateBuffer)
 
             println("rab: $rawAudioBuffer")
             //Retreive the extra information that was stored in the buffers by the function
@@ -43,7 +44,6 @@ class Audio {
             sampleRate = sampleRateBuffer.get(0)
         }
 
-//Find the correct OpenAL format
         var format = -1
         if (channels!! == 1) {
             format = AL_FORMAT_MONO16
@@ -51,32 +51,26 @@ class Audio {
             format = AL_FORMAT_STEREO16
         }
 
-//Request space for the buffer
         val bufferPointer = alGenBuffers()
-
-//Send the data to OpenAL
         alBufferData(bufferPointer, format, rawAudioBuffer!!, sampleRate!!)
-
-//Free the memory allocated by STB
         free(rawAudioBuffer)
 
-//Request a source
         val sourcePointer = alGenSources()
-
-//Assign the sound we just loaded to the source
         alSourcei(sourcePointer, AL_BUFFER, bufferPointer)
-
-//Play the sound
+        alSourcei(sourcePointer, AL_LOOPING, AL_TRUE)
         alSourcePlay(sourcePointer)
 
         try {
+            var xCounter = 0f
             //Wait for a second
-            //Thread.sleep(1000)
+            while (true) {
+                alSource3f(sourcePointer, AL_POSITION, xCounter, 0f, 0f)
+                Thread.sleep(16)
+                xCounter = (timedOscillator(5000) - 2500f) / 200f
+            }
         } catch (ignored: InterruptedException) {
         }
 
-
-//Terminate OpenAL
         alDeleteSources(sourcePointer)
         alDeleteBuffers(bufferPointer)
         alcDestroyContext(context)

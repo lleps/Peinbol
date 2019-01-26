@@ -42,6 +42,8 @@ dependencies {
     compile 'javax.vecmath:vecmath:1.5.2'
     compile 'cz.advel.jbullet:jbullet:20101010-1'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile 'org.joml:joml:1.9.12'
+    
     implementation "org.lwjgl:lwjgl:$lwjglVersion"
     implementation "org.lwjgl:lwjgl-bgfx:$lwjglVersion"
     implementation "org.lwjgl:lwjgl-egl:$lwjglVersion"
