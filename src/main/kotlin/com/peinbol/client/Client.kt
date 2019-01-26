@@ -71,7 +71,7 @@ class Client {
             lastFrame = System.currentTimeMillis()
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
-            physics.simulate(delta.toDouble(), false, myBoxId)
+            physics.simulate(delta.toDouble(), true, myBoxId)
             audioManager.update(Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ))
             window.draw()
         }
