@@ -47,6 +47,7 @@ class AudioManager {
         alSourcei(sourcePointer, AL_BUFFER, bufferForId)
         alSourcei(sourcePointer, AL_LOOPING, loop)
         source.sourceId = sourcePointer
+        source.loop = loop
         alSourcePlay(sourcePointer)
         sources.add(source)
     }
@@ -63,13 +64,28 @@ class AudioManager {
         alListener3f(AL_POSITION, listenerPosition.x, listenerPosition.y, listenerPosition.z)
         alListenerfv(AL_ORIENTATION, floatArrayOf(0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f))
         alListener3f(AL_VELOCITY, 0f, 0f, 0f)
-        for (source in sources) {
-            alSource3f(source.sourceId, AL_POSITION, source.position.x, source.position.y, source.position.z)
-            alSourcef(source.sourceId, AL_GAIN, source.volume)
-            alSourcef(source.sourceId, AL_PITCH, source.pitch)
-            alSourcef(source.sourceId, AL_ROLLOFF_FACTOR, 1f)
-            alSourcef(source.sourceId, AL_MAX_DISTANCE, source.ratio)
-            alSourcef(source.sourceId, AL_REFERENCE_DISTANCE, source.ratio)
+        val iterator = sources.iterator()
+        while (iterator.hasNext()) {
+            val source = iterator.next()
+            var playing = true
+            stackPush().use { stack ->
+                val soundState = stack.mallocInt(1)
+                alGetSourcei(source.sourceId, AL_SOURCE_STATE, soundState)
+                playing = soundState[0] == AL_PLAYING
+            }
+            // Check if the sound finished
+            if (!playing && source.loop == 0) {
+                alSourceStop(source.sourceId)
+                alDeleteSources(source.sourceId)
+                iterator.remove()
+            } else {
+                alSource3f(source.sourceId, AL_POSITION, source.position.x, source.position.y, source.position.z)
+                alSourcef(source.sourceId, AL_GAIN, source.volume)
+                alSourcef(source.sourceId, AL_PITCH, source.pitch)
+                alSourcef(source.sourceId, AL_ROLLOFF_FACTOR, 2.5f)
+                alSourcef(source.sourceId, AL_MAX_DISTANCE, source.ratio)
+                alSourcef(source.sourceId, AL_REFERENCE_DISTANCE, source.ratio)
+            }
         }
     }
 
