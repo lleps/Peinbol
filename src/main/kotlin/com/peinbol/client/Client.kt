@@ -5,6 +5,8 @@ import org.lwjgl.glfw.GLFW.*
 import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
 import kotlin.concurrent.thread
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Peinbol game client. Essentially, draw what the server says.
@@ -72,7 +74,9 @@ class Client {
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
             physics.simulate(delta.toDouble(), true, myBoxId)
-            audioManager.update(Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ))
+            val cameraPosition = Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ)
+            val cameraVector = Vector3f(cos(radians(window.cameraRotY)), 0f, sin(radians(window.cameraRotY)))
+            audioManager.update(cameraPosition, cameraVector)
             window.draw()
         }
         window.destroy()

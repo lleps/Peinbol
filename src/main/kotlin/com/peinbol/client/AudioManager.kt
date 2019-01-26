@@ -59,10 +59,10 @@ class AudioManager {
         sources.remove(source)
     }
 
-    fun update(listenerPosition: Vector3f) {
+    fun update(listenerPosition: Vector3f, cameraVector: Vector3f) {
         val listenerOri = BufferUtils.createFloatBuffer(6).put(floatArrayOf(0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f))
         alListener3f(AL_POSITION, listenerPosition.x, listenerPosition.y, listenerPosition.z)
-        alListenerfv(AL_ORIENTATION, floatArrayOf(0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f))
+        alListenerfv(AL_ORIENTATION, floatArrayOf(cameraVector.x, cameraVector.y, cameraVector.z, 0.0f, 1.0f, 0.0f))
         alListener3f(AL_VELOCITY, 0f, 0f, 0f)
         val iterator = sources.iterator()
         while (iterator.hasNext()) {
