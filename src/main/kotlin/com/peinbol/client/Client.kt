@@ -23,6 +23,7 @@ class Client {
     private lateinit var physics: Physics
     private lateinit var window: Window
     private lateinit var network: Network.Client
+    private lateinit var audioManager: AudioManager
     private var lastInputStateSent: Long = 0L
     private var lastShot: Long = 0
     private var mouseDownMillis: Long = 0
@@ -55,6 +56,10 @@ class Client {
         })
         window.registerUIElement(ChatUI::class.java, ChatUI())
 
+        // setup audio
+        audioManager = AudioManager()
+        audioManager.init()
+
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {
             val deltaMoveX = window.mouseDeltaX
@@ -64,10 +69,12 @@ class Client {
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
             physics.simulate(delta.toDouble(), false, myBoxId)
+            audioManager.update()
             window.draw()
         }
         window.destroy()
         network.close()
+        audioManager.destroy()
     }
 
     /** Called when a message from the server arrives. */
