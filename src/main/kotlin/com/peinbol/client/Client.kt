@@ -29,6 +29,7 @@ class Client {
     private var mouseDownMillis: Long = 0
     private val boxes = hashMapOf<Int, Box>()
     private var myBoxId = -1
+    private lateinit var playerBoxAudio: AudioSource
 
     fun init(args: Array<String>) {
         val host = args[0]
@@ -69,12 +70,16 @@ class Client {
             network.pollMessages()
             update(window, deltaMoveX, deltaMoveY, delta)
             physics.simulate(delta.toDouble(), false, myBoxId)
-            audioManager.update()
+            audioManager.update(Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ))
             window.draw()
         }
         window.destroy()
         network.close()
         audioManager.destroy()
+    }
+
+    private fun debug(msg: String) {
+        window.getUIElement(ChatUI::class.java)!!.addMessage(msg)
     }
 
     /** Called when a message from the server arrives. */
@@ -85,6 +90,13 @@ class Client {
                 val myBox = boxes[myBoxId]
                 if (myBox != null) {
                     window.boxes -= myBox
+                    playerBoxAudio = AudioSource(
+                        position = myBox.position,
+                        volume = 1f,
+                        audioId = Audios.WALK,
+                        ratio = 3f
+                    )
+                    audioManager.registerSource(playerBoxAudio)
                 }
             }
             is Messages.BoxAdded -> {
@@ -185,6 +197,17 @@ class Client {
                 onDrugs = !onDrugs
             }
         }
+        if (window.isKeyPressed(GLFW_KEY_L)) {
+            if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
+                lastCursorModeSwitch = System.currentTimeMillis()
+                audioManager.registerSource(AudioSource(
+                    position = Vector3f(window.cameraPosX, window.cameraPosY, window.cameraPosZ),
+                    volume = 1f,
+                    audioId = Audios.WALK,
+                    ratio = 3f
+                ))
+            }
+        }
 
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
@@ -192,9 +215,13 @@ class Client {
             val velOscillator = 0.5f - (timedOscillator(250) / 250f)
             doPlayerMovement(playerBox, inputState, delta)
             //window.fov = 30f + vel*0.7f
+            playerBoxAudio.position = playerBox.position.get()
             window.cameraPosX = playerBox.position.x
             window.cameraPosY = playerBox.position.y + 0.8f// + velOscillator*vel*0.07f
             window.cameraPosZ = playerBox.position.z
+            playerBoxAudio.volume = (vel*0.2f).coerceAtMost(1f)
+            playerBoxAudio.pitch = (vel*0.4f).coerceAtMost(1f)
+            debug("velocity: ${vel*0.1f}")
         }
 
         val moveMillisStep = 200

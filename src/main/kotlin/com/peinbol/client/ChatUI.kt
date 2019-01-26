@@ -17,6 +17,7 @@ class ChatUI : NkUIDrawable {
 
     fun addMessage(msg: String) {
         messages += MessageEntry(msg, System.currentTimeMillis())
+        if (messages.size > 20) messages = messages.takeLast(20)
     }
 
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {

@@ -2,12 +2,22 @@ package com.peinbol.client
 
 import org.lwjgl.openal.AL
 import org.lwjgl.openal.AL10.*
+import org.lwjgl.openal.AL11
+import org.lwjgl.openal.AL11.AL_LINEAR_DISTANCE
 import org.lwjgl.openal.ALC
 import org.lwjgl.openal.ALC10.*
 import org.lwjgl.stb.STBVorbis.stb_vorbis_decode_filename
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.libc.LibCStdlib.free
 import java.nio.ShortBuffer
+import javax.vecmath.Vector3f
+import org.lwjgl.BufferUtils
+import org.lwjgl.openal.AL11.AL_EXPONENT_DISTANCE
+import java.nio.FloatBuffer
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+
 
 class AudioManager {
     private val audioBuffers = mutableMapOf<Int, Int>()
@@ -23,6 +33,7 @@ class AudioManager {
         alcMakeContextCurrent(context)
         AL.createCapabilities(ALC.createCapabilities(device))
 
+        alDistanceModel(AL_EXPONENT_DISTANCE)
         for ((id, file) in Audios.FILES) {
             val bufferPointer = createBufferForAudioFile(file)
             audioBuffers[id] = bufferPointer
@@ -35,6 +46,7 @@ class AudioManager {
         val sourcePointer = alGenSources()
         alSourcei(sourcePointer, AL_BUFFER, bufferForId)
         alSourcei(sourcePointer, AL_LOOPING, AL_TRUE)
+        source.sourceId = sourcePointer
         alSourcePlay(sourcePointer)
         sources.add(source)
     }
@@ -46,10 +58,18 @@ class AudioManager {
         sources.remove(source)
     }
 
-    fun update() {
+    fun update(listenerPosition: Vector3f) {
+        val listenerOri = BufferUtils.createFloatBuffer(6).put(floatArrayOf(0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f))
+        alListener3f(AL_POSITION, listenerPosition.x, listenerPosition.y, listenerPosition.z)
+        alListenerfv(AL_ORIENTATION, floatArrayOf(0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f))
+        alListener3f(AL_VELOCITY, 0f, 0f, 0f)
         for (source in sources) {
             alSource3f(source.sourceId, AL_POSITION, source.position.x, source.position.y, source.position.z)
             alSourcef(source.sourceId, AL_GAIN, source.volume)
+            alSourcef(source.sourceId, AL_PITCH, source.pitch)
+            alSourcef(source.sourceId, AL_ROLLOFF_FACTOR, 1f)
+            alSourcef(source.sourceId, AL_MAX_DISTANCE, source.ratio)
+            alSourcef(source.sourceId, AL_REFERENCE_DISTANCE, source.ratio)
         }
     }
 
@@ -67,7 +87,9 @@ class AudioManager {
         stackPush().use { stack ->
             val channelsBuffer = stack.mallocInt(1)
             val sampleRateBuffer = stack.mallocInt(1)
-            rawAudioBuffer = stb_vorbis_decode_filename(file, channelsBuffer, sampleRateBuffer)
+            Files.write(Paths.get("audio-file.ogg"), javaClass.classLoader.getResourceAsStream(file).readBytes())
+            rawAudioBuffer = stb_vorbis_decode_filename("audio-file.ogg", channelsBuffer, sampleRateBuffer)
+            Files.delete(Paths.get("audio-file.ogg"))
             if (rawAudioBuffer == null) error("can't load audio file: '$file'")
             channels = channelsBuffer.get(0)
             sampleRate = sampleRateBuffer.get(0)
