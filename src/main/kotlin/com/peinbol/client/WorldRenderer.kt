@@ -1,6 +1,7 @@
 package com.peinbol.client
 
 import com.peinbol.Box
+import com.peinbol.Textures
 import com.peinbol.radians
 import org.joml.Matrix4f
 import org.joml.Vector4f
@@ -20,11 +21,13 @@ class WorldRenderer {
         private const val POSITION_DATA_SIZE = 3
         private const val COLOR_DATA_SIZE = 4
         private const val NORMAL_DATA_SIZE = 3
+        private const val TEXTURE_COORDS_DATA_SIZE = 2
     }
 
-    private var mCubePositions: FloatBuffer
-    private var mCubeColors: FloatBuffer
-    private var mCubeNormals: FloatBuffer
+    private val mCubePositions: FloatBuffer
+    private val mCubeColors: FloatBuffer
+    private val mCubeNormals: FloatBuffer
+    private val mCubeTextureCoordinates: FloatBuffer
 
     private var width: Int = 0
     private var height: Int = 0
@@ -73,6 +76,21 @@ class WorldRenderer {
             // Bottom face
             0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f)
 
+        val cubeTextureCoordinateData = floatArrayOf(
+            // Front face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+            // Right face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+            // Back face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+            // Left face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+            // Top face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+            // Bottom face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f)
+
+
         mCubePositions = ByteBuffer.allocateDirect(cubePositionData.size * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
         mCubePositions.put(cubePositionData).position(0)
@@ -82,6 +100,9 @@ class WorldRenderer {
         mCubeNormals = ByteBuffer.allocateDirect(cubeNormalData.size * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
         mCubeNormals.put(cubeNormalData).position(0)
+        mCubeTextureCoordinates = ByteBuffer.allocateDirect(cubeTextureCoordinateData.size * BYTES_PER_FLOAT)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        mCubeTextureCoordinates.put(cubeTextureCoordinateData).position(0)
     }
 
     private val viewMatrix = Matrix4f()
@@ -101,8 +122,11 @@ class WorldRenderer {
     private var colorHandle = 0
     private var normalHandle = 0
     private var lightPosHandle = 0
+    private var textureUniformHandle = 0
+    private var textureCoordinateHandle = 0
 
     private val boxes = mutableListOf<Box>()
+    private val textures = mutableMapOf<Int, Texture>()
 
     fun addBox(box: Box) {
         boxes += box
@@ -132,11 +156,15 @@ class WorldRenderer {
 
 
     fun init(width: Int, height: Int) {
+        for ((txtId, txtFile) in Textures.FILES) {
+            textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
+        }
+
         this.width = width
         this.height = height
         val vertexShader = loadShaderFromFile("vertexShader.glsl", GL_VERTEX_SHADER)
         val fragmentShader = loadShaderFromFile("fragmentShader.glsl", GL_FRAGMENT_SHADER)
-        program = createAndLinkProgram(vertexShader, fragmentShader, arrayOf("a_Position", "a_Color", "a_Normal"))
+        program = createAndLinkProgram(vertexShader, fragmentShader, arrayOf("a_Position", "a_Color", "a_Normal", "a_TexCoordinate"))
     }
 
     fun draw() {
@@ -146,6 +174,8 @@ class WorldRenderer {
         positionHandle = glGetAttribLocation(program, "a_Position")
         colorHandle = glGetAttribLocation(program, "a_Color")
         normalHandle = glGetAttribLocation(program, "a_Normal")
+        textureUniformHandle = glGetUniformLocation(program, "u_Texture")
+        textureCoordinateHandle = glGetAttribLocation(program, "a_TexCoordinate")
 
         glClearColor(46f/255f,68f/255f,130f/255f, 1f) // dark sky
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
@@ -153,6 +183,7 @@ class WorldRenderer {
         glEnable(GL_CULL_FACE)
         glEnable(GL_DEPTH_TEST)
         glUseProgram(program)
+        glActiveTexture(GL_TEXTURE0)
 
         projectionMatrix
             .identity()
@@ -175,7 +206,7 @@ class WorldRenderer {
         val toX = cameraPosX + cos(radians(cameraRotY))
         val toY = cameraPosY + cos(radians(cameraRotX))
         val toZ = cameraPosZ + sin(radians(cameraRotY))
-        println("from: $cameraPosX $cameraPosY $cameraPosZ  to: $toX $toY $toZ   rot: $cameraRotX $cameraRotY")
+        //println("from: $cameraPosX $cameraPosY $cameraPosZ  to: $toX $toY $toZ   rot: $cameraRotX $cameraRotY")
 
         val time = System.currentTimeMillis() % 10000L
         val angleInDegrees = (360.0f / 10000.0f) * time.toInt()
@@ -195,6 +226,8 @@ class WorldRenderer {
                 .translate(box.position.x, box.position.y, box.position.z)
                 .scale(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
 
+            textures[box.textureId]?.bind()
+            glUniform1i(textureUniformHandle, 0)
             drawCube()
         }
     }
@@ -213,6 +246,10 @@ class WorldRenderer {
         mCubeNormals.position(0)
         glVertexAttribPointer(normalHandle, NORMAL_DATA_SIZE, GL_FLOAT, false, 0, mCubeNormals)
         glEnableVertexAttribArray(normalHandle)
+
+        mCubeTextureCoordinates.position(0)
+        glVertexAttribPointer(textureCoordinateHandle, TEXTURE_COORDS_DATA_SIZE, GL_FLOAT, false, 0, mCubeTextureCoordinates)
+        glEnableVertexAttribArray(textureCoordinateHandle)
 
         viewMatrix.mul(modelMatrix, mvpMatrix)
         tmpFloatBuffer.position(0)

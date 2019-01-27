@@ -151,9 +151,7 @@ class Window {
         worldDrawer.init(width, height)
         uiDrawer.init(window)
 
-        for ((txtId, txtFile) in Textures.FILES) {
-            textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
-        }
+
     }
 
     private var fpsCount: Long = 0
