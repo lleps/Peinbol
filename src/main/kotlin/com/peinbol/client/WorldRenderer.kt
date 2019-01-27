@@ -1,11 +1,10 @@
-package com.peinbol.test
+package com.peinbol.client
 
 import com.peinbol.Box
 import com.peinbol.radians
 import org.joml.Matrix4f
 import org.joml.Vector4f
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL11.glClearColor
 import org.lwjgl.opengl.GL20.*
 import java.nio.ByteBuffer
@@ -15,7 +14,7 @@ import java.nio.FloatBuffer
 import kotlin.math.cos
 import kotlin.math.sin
 
-class MyGLCode {
+class WorldRenderer {
     companion object {
         private const val BYTES_PER_FLOAT = 4
         private const val POSITION_DATA_SIZE = 3

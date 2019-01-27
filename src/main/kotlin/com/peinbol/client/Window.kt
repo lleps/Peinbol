@@ -1,11 +1,7 @@
 package com.peinbol.client
 
-import com.bulletphysics.linearmath.Transform
 import com.peinbol.Box
-import com.peinbol.Color
 import com.peinbol.Textures
-import com.peinbol.test.MyGLCode
-import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
@@ -87,7 +83,7 @@ class Window {
     private var window: Long = 0
     private val textures = mutableMapOf<Int, Texture>()
     private val uiDrawer = NkGLBackend()
-    private val worldDrawer = MyGLCode()
+    private val worldDrawer = WorldRenderer()
     private val uiDrawables = hashMapOf<Class<out NkUIDrawable>, NkUIDrawable>()
 
     /** Register a drawable instance for the given class. Throws an exception if
