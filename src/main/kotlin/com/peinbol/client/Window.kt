@@ -87,7 +87,7 @@ class Window {
     private var window: Long = 0
     private val textures = mutableMapOf<Int, Texture>()
     private val uiDrawer = NkGLBackend()
-    private val worldDrawer = MyGLCode(1366, 768)
+    private val worldDrawer = MyGLCode()
     private val uiDrawables = hashMapOf<Class<out NkUIDrawable>, NkUIDrawable>()
 
     /** Register a drawable instance for the given class. Throws an exception if
@@ -152,7 +152,7 @@ class Window {
         glfwSetWindowTitle(window, "Snower")
         GL.createCapabilities()
 
-        worldDrawer.init()
+        worldDrawer.init(width, height)
         uiDrawer.init(window)
 
         for ((txtId, txtFile) in Textures.FILES) {

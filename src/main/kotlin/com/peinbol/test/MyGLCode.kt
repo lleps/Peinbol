@@ -15,7 +15,7 @@ import java.nio.FloatBuffer
 import kotlin.math.cos
 import kotlin.math.sin
 
-class MyGLCode(private val width: Int, private val height: Int) {
+class MyGLCode {
     companion object {
         private const val BYTES_PER_FLOAT = 4
         private const val POSITION_DATA_SIZE = 3
@@ -26,6 +26,9 @@ class MyGLCode(private val width: Int, private val height: Int) {
     private var mCubePositions: FloatBuffer
     private var mCubeColors: FloatBuffer
     private var mCubeNormals: FloatBuffer
+
+    private var width: Int = 0
+    private var height: Int = 0
 
     init {
         // X, Y, Z
@@ -130,12 +133,13 @@ class MyGLCode(private val width: Int, private val height: Int) {
 
     private var program: Int = 0
 
-    fun init() {
+    fun init(width: Int, height: Int) {
         val vertexShader = loadShaderFromFile("vertexShader.glsl", GL_VERTEX_SHADER)
         val fragmentShader = loadShaderFromFile("fragmentShader.glsl", GL_FRAGMENT_SHADER)
         program = createAndLinkProgram(vertexShader, fragmentShader, arrayOf("a_Position", "a_Color", "a_Normal"))
 
-
+        this.width = width
+        this.height = height
     }
 
     fun draw() {
