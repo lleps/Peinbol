@@ -1,8 +1,6 @@
 package com.peinbol.client
 
-import com.peinbol.Box
-import com.peinbol.Textures
-import com.peinbol.radians
+import com.peinbol.*
 import org.joml.Matrix4f
 import org.joml.Vector4f
 import org.lwjgl.BufferUtils
@@ -28,6 +26,7 @@ class WorldRenderer {
     private val mCubeColors: FloatBuffer
     private val mCubeNormals: FloatBuffer
     private val mCubeTextureCoordinates: FloatBuffer
+    private val mCubeTextureCoordinatesRef: FloatBuffer
 
     private var width: Int = 0
     private var height: Int = 0
@@ -103,6 +102,9 @@ class WorldRenderer {
         mCubeTextureCoordinates = ByteBuffer.allocateDirect(cubeTextureCoordinateData.size * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
         mCubeTextureCoordinates.put(cubeTextureCoordinateData).position(0)
+        mCubeTextureCoordinatesRef = ByteBuffer.allocateDirect(cubeTextureCoordinateData.size * BYTES_PER_FLOAT)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        mCubeTextureCoordinatesRef.put(cubeTextureCoordinateData).position(0)
     }
 
     private val viewMatrix = Matrix4f()
@@ -153,7 +155,6 @@ class WorldRenderer {
         set(value) {
             field = value % 360f
         }
-
 
     fun init(width: Int, height: Int) {
         for ((txtId, txtFile) in Textures.FILES) {
@@ -228,17 +229,26 @@ class WorldRenderer {
 
             textures[box.textureId]?.bind()
             glUniform1i(textureUniformHandle, 0)
-            drawCube()
+            drawCube(box)
         }
     }
 
     private val tmpFloatBuffer = BufferUtils.createFloatBuffer(16)
 
-    private fun drawCube() {
+    private fun drawCube(box: Box) {
         mCubePositions.position(0)
         glVertexAttribPointer(positionHandle, POSITION_DATA_SIZE, GL_FLOAT, false, 0, mCubePositions)
         glEnableVertexAttribArray(positionHandle)
 
+        // fill with box info the color.
+        mCubeColors.position(0)
+        val (r,g,b,a) = box.theColor
+        repeat(mCubeColors.capacity() / COLOR_DATA_SIZE) {
+            mCubeColors.put(r)
+            mCubeColors.put(g)
+            mCubeColors.put(b)
+            mCubeColors.put(a)
+        }
         mCubeColors.position(0)
         glVertexAttribPointer(colorHandle, COLOR_DATA_SIZE, GL_FLOAT, false, 0, mCubeColors)
         glEnableVertexAttribArray(colorHandle)
@@ -247,6 +257,10 @@ class WorldRenderer {
         glVertexAttribPointer(normalHandle, NORMAL_DATA_SIZE, GL_FLOAT, false, 0, mCubeNormals)
         glEnableVertexAttribArray(normalHandle)
 
+        mCubeTextureCoordinates.position(0)
+        repeat(mCubeTextureCoordinates.capacity()) { i ->
+            mCubeTextureCoordinates.put(mCubeTextureCoordinatesRef.get(i) * box.textureMultiplier.toFloat())
+        }
         mCubeTextureCoordinates.position(0)
         glVertexAttribPointer(textureCoordinateHandle, TEXTURE_COORDS_DATA_SIZE, GL_FLOAT, false, 0, mCubeTextureCoordinates)
         glEnableVertexAttribArray(textureCoordinateHandle)
