@@ -160,11 +160,12 @@ class Window {
     private var countFpsExpiry = System.currentTimeMillis() + 1000
 
     fun draw() {
-        val start = System.nanoTime()
 
         // Draw world & UI
+        val start = System.nanoTime()
         worldDrawer.draw()
         uiDrawer.draw(window)
+        lastDrawMillis = (System.nanoTime() - start) / 1000000f
 
         // Stats
         fpsCount++
@@ -174,7 +175,6 @@ class Window {
             countFpsExpiry = System.currentTimeMillis() + 1000
         }
 
-        lastDrawMillis = (System.nanoTime() - start) / 1000000f
 
         // Window sync
         glfwSwapBuffers(window)
