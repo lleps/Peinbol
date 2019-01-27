@@ -15,15 +15,18 @@ class ClientStatsUI(
     private val network: Network.Client
 ) : NkUIDrawable {
 
+    private val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
+
     var visible = true
 
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
         val statCount = 3 // cpu+net fps 60  phys xms   draw xms |  ping 50ms  out 25kb/s  in 25/s   mem used/alloc/Max
-        nkBeginDefaultWindow(
+        nkBeginTransparentWindow(
             ctx,
             "Stats",
-            20f, 20f, 300f, statCount*25f
+            20f, 20f, 300f, statCount*25f,
+            background = BLACK_TRANSPARENT
         ) {
             nk_layout_row_dynamic(ctx, 20f, 1)
             nk_label(ctx,
