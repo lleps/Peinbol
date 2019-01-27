@@ -30,7 +30,6 @@ class WorldRenderer {
     private var height: Int = 0
 
     init {
-        // X, Y, Z
         val cubePositionData = floatArrayOf(
             // Front face
             -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
@@ -95,6 +94,7 @@ class WorldRenderer {
     private val lightPosInWorldSpace = Vector4f()
     private val lightPosInEyeSpace = Vector4f()
 
+    private var program: Int = 0
     private var mvpMatrixHandle = 0
     private var mvMatrixHandle = 0
     private var positionHandle = 0
@@ -130,40 +130,29 @@ class WorldRenderer {
             field = value % 360f
         }
 
-    private var program: Int = 0
 
     fun init(width: Int, height: Int) {
+        this.width = width
+        this.height = height
         val vertexShader = loadShaderFromFile("vertexShader.glsl", GL_VERTEX_SHADER)
         val fragmentShader = loadShaderFromFile("fragmentShader.glsl", GL_FRAGMENT_SHADER)
         program = createAndLinkProgram(vertexShader, fragmentShader, arrayOf("a_Position", "a_Color", "a_Normal"))
-
-        this.width = width
-        this.height = height
     }
 
     fun draw() {
         mvpMatrixHandle = glGetUniformLocation(program, "u_MVPMatrix")
         mvMatrixHandle = glGetUniformLocation(program, "u_MVMatrix")
         lightPosHandle = glGetUniformLocation(program, "u_LightPos")
-
         positionHandle = glGetAttribLocation(program, "a_Position")
         colorHandle = glGetAttribLocation(program, "a_Color")
         normalHandle = glGetAttribLocation(program, "a_Normal")
 
-        glUseProgram(program)
-        glClearColor(46f/255f,68f/255f,130f/255f, 1f)
-        glViewport(0, 0, width, height)
-        glEnable(GL_CULL_FACE)
-        glEnable(GL_DEPTH_TEST)
-
+        glClearColor(46f/255f,68f/255f,130f/255f, 1f) // dark sky
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
-
-        glUseProgram(program)
-        glUseProgram(program)
-        glClearColor(0.5f, 0.5f, 0.5f, 0.5f)
         glViewport(0, 0, width, height)
         glEnable(GL_CULL_FACE)
         glEnable(GL_DEPTH_TEST)
+        glUseProgram(program)
 
         projectionMatrix
             .identity()
@@ -207,20 +196,7 @@ class WorldRenderer {
                 .scale(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
 
             drawCube()
-            //println("draw box $box")
         }
-
-        modelMatrix
-            .identity()
-            .translate(0f, 0f, -1f)
-            //.rotate(radians(angleInDegrees), 1f, 0f, 0f)
-        drawCube()
-
-        modelMatrix
-            .identity()
-            .translate(0f, -4f, -1f)
-            .rotate(radians(angleInDegrees), 0f, 1f, 0f)
-        drawCube()
     }
 
     private val tmpFloatBuffer = BufferUtils.createFloatBuffer(16)
@@ -228,7 +204,6 @@ class WorldRenderer {
     private fun drawCube() {
         mCubePositions.position(0)
         glVertexAttribPointer(positionHandle, POSITION_DATA_SIZE, GL_FLOAT, false, 0, mCubePositions)
-
         glEnableVertexAttribArray(positionHandle)
 
         mCubeColors.position(0)
