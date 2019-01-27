@@ -22,7 +22,7 @@ void main()
 
     // Add attenuation.
     diffuse = diffuse * (1.0 / (1.0 + (0.10 * distance)));
-    diffuse = diffuse + 0.3;
+    //diffuse = diffuse + 0.3;
 
     // Multiply the color by the diffuse illumination level and texture value to get final output color.
     gl_FragColor = (v_Color * diffuse * texture2D(u_Texture, v_TexCoordinate));

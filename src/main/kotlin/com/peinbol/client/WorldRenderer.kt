@@ -178,7 +178,7 @@ class WorldRenderer {
         textureUniformHandle = glGetUniformLocation(program, "u_Texture")
         textureCoordinateHandle = glGetAttribLocation(program, "a_TexCoordinate")
 
-        glClearColor(46f/255f,68f/255f,130f/255f, 1f) // dark sky
+        glClearColor(10f/255f,2f/255f,36f/255f, 1f) //  sky
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
         glViewport(0, 0, width, height)
         glEnable(GL_CULL_FACE)
