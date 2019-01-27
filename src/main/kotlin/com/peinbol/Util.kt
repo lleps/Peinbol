@@ -1,6 +1,7 @@
 
 package com.peinbol
 
+import org.joml.Matrix4f
 import java.util.*
 import javax.vecmath.Tuple3f
 import javax.vecmath.Tuple4f
@@ -76,3 +77,5 @@ fun vectorFront(angleX: Float, angleY: Float, scale: Float = 1f): Vector3f {
         -Math.cos(Math.toRadians(angleX.toDouble())).toFloat() * scale
     )
 }
+
+fun radians(degrees: Float): Float = Math.toRadians(degrees.toDouble()).toFloat()
