@@ -60,6 +60,7 @@ class Client {
             else Vector3f()
         })
         window.registerUIElement(ChatUI::class.java, ChatUI())
+        window.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
 
         // setup audio
         audioManager = AudioManager()
@@ -178,6 +179,7 @@ class Client {
 
     private var lastCursorModeSwitch = System.currentTimeMillis()
     private var onDrugs = false
+    private var showInfo = false
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Long) {
@@ -216,6 +218,19 @@ class Client {
                     audioId = Audios.HIT,
                     ratio = 5f
                 ), 1)
+            }
+        }
+        if (window.isKeyPressed(GLFW_KEY_TAB)) {
+            if (System.currentTimeMillis() - lastCursorModeSwitch > 400) {
+                lastCursorModeSwitch = System.currentTimeMillis()
+                showInfo = !showInfo
+
+                window.getUIElement(ChatUI::class.java)!!.visible = !showInfo
+                window.getUIElement(ClientStatsUI::class.java)!!.visible = !showInfo
+                window.getUIElement(CrosshairUI::class.java)!!.visible = !showInfo
+                window.getUIElement(HealthUI::class.java)!!.visible = !showInfo
+
+                window.getUIElement(PlayersInfoUI::class.java)!!.visible = showInfo
             }
         }
 
