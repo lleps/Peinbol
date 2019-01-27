@@ -156,7 +156,7 @@ class WorldRenderer {
             field = value % 360f
         }
 
-    fun init(width: Int, height: Int) {
+    fun preload() {
         for ((txtId, txtFile) in Textures.FILES) {
             try {
                 textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
@@ -165,6 +165,10 @@ class WorldRenderer {
                 error("can't load txt id $txtId (file: $txtFile): $e")
             }
         }
+    }
+
+    fun init(width: Int, height: Int) {
+        textures.values.forEach { it.loadIntoGL() }
 
         this.width = width
         this.height = height

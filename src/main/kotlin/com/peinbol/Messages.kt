@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
+import java.lang.StringBuilder
 import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 import kotlin.reflect.KClass
@@ -28,15 +29,18 @@ object Messages {
     }
 
     init {
-        registerMessageType(0, InputState, InputState::class)
-        registerMessageType(1, Spawn, Spawn::class)
-        registerMessageType(2, BoxAdded, BoxAdded::class)
-        registerMessageType(3, BoxUpdateMotion, BoxUpdateMotion::class)
-        registerMessageType(4, RemoveBox, RemoveBox::class)
-        registerMessageType(5, SetHealth, SetHealth::class)
-        registerMessageType(6, NotifyHit, NotifyHit::class)
-        registerMessageType(7, ServerMessage, ServerMessage::class)
-        registerMessageType(8, Ping, Ping::class) // used as ping and pong
+        // client-to-server
+        registerMessageType(0, ConnectionInfo, ConnectionInfo::class)
+        registerMessageType(1, InputState, InputState::class)
+        // server-to-client
+        registerMessageType(2, Spawn, Spawn::class)
+        registerMessageType(3, BoxAdded, BoxAdded::class)
+        registerMessageType(4, BoxUpdateMotion, BoxUpdateMotion::class)
+        registerMessageType(5, RemoveBox, RemoveBox::class)
+        registerMessageType(6, SetHealth, SetHealth::class)
+        registerMessageType(7, NotifyHit, NotifyHit::class)
+        registerMessageType(8, ServerMessage, ServerMessage::class)
+        registerMessageType(9, Ping, Ping::class) // used as ping and pong
     }
 
     /** Wraps the message ID and their body */
@@ -154,6 +158,29 @@ object Messages {
 
     private fun ByteBuf.readQuat4f(): Quat4f {
         return Quat4f(readFloat(), readFloat(), readFloat(), readFloat())
+    }
+
+
+    /** Writes [maxLength]*2 bytes in the buffer with [string] on it. Throws an exception if the string is too long. */
+    private fun ByteBuf.writeString(string: String, maxLength: Int) {
+        if (string.length > maxLength) error("string length too big (${string.length}, max $maxLength)")
+        val stringLength = string.length
+        repeat(maxLength) { i ->
+            if (i < stringLength) {
+                writeChar(string[i].toInt())
+            } else {
+                writeChar(' '.toInt())
+            }
+        }
+    }
+
+    /** Read [length]*2 bytes as a string. Trims end spaces. */
+    private fun ByteBuf.readString(length: Int): String {
+        val result = StringBuilder()
+        repeat(length) { i ->
+            result.append(readChar())
+        }
+        return result.toString().trimEnd()
     }
 
     /** Add some box to the world. */
@@ -345,6 +372,24 @@ object Messages {
                     str += buf.readChar()
                 }
                 return ServerMessage(str.trim())
+            }
+        }
+    }
+
+    /** To notify the server about the player info. */
+    class ConnectionInfo(
+        val name: String // 40 chars max (40*8 bytes)
+    ) {
+        companion object : MessageType<ConnectionInfo> {
+            override val bytes: Int
+                get() = 40*2 // 2 bytes per string character
+
+            override fun write(msg: ConnectionInfo, buf: ByteBuf) {
+                buf.writeString(msg.name, 40)
+            }
+
+            override fun read(buf: ByteBuf): ConnectionInfo {
+                return ConnectionInfo(buf.readString(40))
             }
         }
     }

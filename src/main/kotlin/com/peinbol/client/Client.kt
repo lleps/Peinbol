@@ -35,19 +35,28 @@ class Client {
     fun init(args: Array<String>) {
         val host = args[0]
         val port = args[1].toInt()
+        val name = args[2]
+        if (name.length > 40) error("name too long: $name")
 
-        // Init network
+        println("Connecting to $host:$port as $name...")
         network = Network.createClient(host, port)
         network.onServerMessage { msg -> handleNetworkMessage(msg) }
+        network.send(Messages.ConnectionInfo(name))
+        network.pollMessages()
 
-        // Init window
-        window = Window()
-        window.init()
+        println("Setup audio...")
+        audioManager = AudioManager()
+        audioManager.init()
 
+        println("Setup physics...")
         physics = Physics(Physics.Mode.CLIENT)
         physics.init()
 
-        // setup ui
+        println("Setup window and OpenGL...")
+        window = Window()
+        window.init()
+
+        println("Setup UI...")
         window.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
         window.registerUIElement(HealthUI::class.java, HealthUI())
         window.registerUIElement(CrosshairUI::class.java, CrosshairUI {
@@ -57,10 +66,6 @@ class Client {
         })
         window.registerUIElement(ChatUI::class.java, ChatUI())
         window.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
-
-        // setup audio
-        audioManager = AudioManager()
-        audioManager.init()
 
         var lastFrame = System.currentTimeMillis()
         while (!window.isKeyPressed(GLFW_KEY_ESCAPE)) {

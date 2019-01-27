@@ -23,6 +23,7 @@ import kotlin.collections.set
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.properties.Delegates
+import kotlin.system.measureTimeMillis
 
 class Window {
     private var width = 800
@@ -112,6 +113,8 @@ class Window {
     }
 
     fun init() {
+        worldDrawer.preload()
+
         GLFWErrorCallback.createPrint(System.err).set()
 
         if (!glfwInit())
@@ -144,21 +147,17 @@ class Window {
 
         glfwMakeContextCurrent(window)
         glfwSwapInterval(1) // Enable v-sync
-        glfwShowWindow(window)
         glfwSetWindowTitle(window, "Snower")
         GL.createCapabilities()
 
         worldDrawer.init(width, height)
         uiDrawer.init(window)
-
-
     }
 
     private var fpsCount: Long = 0
     private var countFpsExpiry = System.currentTimeMillis() + 1000
 
     fun draw() {
-
         // Draw world & UI
         val start = System.nanoTime()
         worldDrawer.draw()

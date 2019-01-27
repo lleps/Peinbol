@@ -132,6 +132,7 @@ class Network {
                     f.channel().closeFuture().sync()
                 } catch (e: Exception) {
                     connectionDone = true
+                    connectionException = e
                 } finally {
                     connectionDone = true
                     workerGroup.shutdownGracefully()

@@ -76,7 +76,7 @@ class Server {
                 mass = 3f,
                 position = Vector3f(
                     randBetween(-40, 40).toFloat(),
-                    randBetween(-5, 5).toFloat(),
+                    2f,
                     randBetween(-40, 40).toFloat()
                 ),
                 size = Vector3f(1f, 1f, 1f),
@@ -95,7 +95,7 @@ class Server {
         // build base
         val base = Box(
             id = generateId(),
-            position = Vector3f(0f, -50f, 0f),
+            position = Vector3f(0f, 0f, 0f),
             size = Vector3f(100f, 1f, 100f),
             affectedByPhysics = false,
             textureId = Textures.GRASS_ID,
@@ -106,7 +106,7 @@ class Server {
         // build 4 walls
         addBox(Box(
             id = generateId(),
-            position = Vector3f(-50f, -65f, 0f),
+            position = Vector3f(-50f, -15f, 0f),
             size = Vector3f(2f, 50f, 100f),
             affectedByPhysics = false,
             textureId = Textures.BRICKS_GREY_ID,
@@ -114,7 +114,7 @@ class Server {
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(50f, -65f, 0f),
+            position = Vector3f(50f, -15f, 0f),
             size = Vector3f(2f, 50f, 100f),
             affectedByPhysics = false,
             textureId = Textures.BRICKS_GREY_ID,
@@ -122,7 +122,7 @@ class Server {
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(0f, -65f, -50f),
+            position = Vector3f(0f, -15f, -50f),
             size = Vector3f(100f, 50f, 2f),
             affectedByPhysics = false,
             textureId = Textures.BRICKS_GREY_ID,
@@ -130,7 +130,7 @@ class Server {
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(0f, -65f, 50f),
+            position = Vector3f(0f, -15f, 50f),
             size = Vector3f(100f, 50f, 2f),
             affectedByPhysics = false,
             textureId = Textures.BRICKS_GREY_ID,
@@ -146,7 +146,7 @@ class Server {
                 id = generateId(),
                 position = Vector3f(
                     randBetween(-50, 50).toFloat(),
-                    -48f,
+                    2f,
                     randBetween(-50, 50).toFloat()
                 ),
                 size = Vector3f(
@@ -233,67 +233,59 @@ class Server {
     }
 
     private fun handleConnection(connection: Network.PlayerConnection) {
-        println("Player connected: $connection")
-
-        // build box
-        val playerBox = Box(
-            id = generateId(),
-            mass = 30f,
-            position = Vector3f(
-                randBetween(-20, 20).toFloat(),
-                10f,
-                randBetween(-20, 20).toFloat()
-            ),
-            size = Vector3f(
-                1f,
-                2f,
-                1f
-            ),
-            textureId = Textures.METAL_ID,
-            affectedByPhysics = false,
-            bounceMultiplier = 0.0f,
-            textureMultiplier = 0.01,
-            isCharacter = true
-        )
-        addBox(playerBox)
-
-        // build player
-        val name = listOf(
-            "Bugger",
-            "Cabbie",
-            "Rooster",
-            "Prometheus",
-            "Hyper",
-            "Midas",
-            "Thrasher",
-            "Zod",
-            "CoolDog",
-            "CodeExia",
-            "IceDog",
-            "Shay",
-            "Prone"
-        ).random()
-        val player = Player(name, connection, playerBox, Messages.InputState())
-        playersByConnections[connection] = player
-
-        // stream current boxes and spawn
-        for (worldBox in boxes) network.send(buildStreamBoxMsg(worldBox), connection)
-        network.send(Messages.Spawn(playerBox.id), connection)
-        broadcastMessage("$name se conecto.")
+        println("Connection request: $connection")
     }
 
     private fun handleDisconnection(connection: Network.PlayerConnection) {
-        val player = playersByConnections[connection]!!
-        println("Player disconnected: $connection")
-        playersByConnections.remove(connection)
-        removeBox(player.collisionBox)
-        broadcastMessage("${player.name} se desconecto.")
+        val player = playersByConnections[connection]
+        if (player != null) {
+            println("Player disconnected: ${player.name}")
+            playersByConnections.remove(connection)
+            removeBox(player.collisionBox)
+            broadcastMessage("${player.name} se desconecto.")
+        }
     }
 
     private fun handleClientMessage(connection: Network.PlayerConnection, message: Any) {
-        val player = playersByConnections[connection]!!
+        val player = playersByConnections[connection]
         when (message) {
+            is Messages.ConnectionInfo -> {
+                if (player != null) return
+
+                // build box
+                val playerBox = Box(
+                    id = generateId(),
+                    mass = 30f,
+                    position = Vector3f(
+                        randBetween(-20, 20).toFloat(),
+                        15f,
+                        randBetween(-20, 20).toFloat()
+                    ),
+                    size = Vector3f(
+                        1f,
+                        2f,
+                        1f
+                    ),
+                    textureId = Textures.METAL_ID,
+                    affectedByPhysics = false,
+                    bounceMultiplier = 0.0f,
+                    textureMultiplier = 0.01,
+                    isCharacter = true
+                )
+                addBox(playerBox)
+
+                // build player
+                val newPlayer = Player(message.name, connection, playerBox, Messages.InputState())
+                playersByConnections[connection] = newPlayer
+
+                // stream current boxes and spawn
+                for (worldBox in boxes) network.send(buildStreamBoxMsg(worldBox), connection)
+                network.send(Messages.Spawn(playerBox.id), connection)
+                println("Player connected: ${newPlayer.name}")
+                broadcastMessage("${newPlayer.name} se conecto.")
+            }
             is Messages.InputState -> {
+                if (player == null) return
                 player.inputState = message
             }
         }
