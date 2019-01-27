@@ -158,7 +158,12 @@ class WorldRenderer {
 
     fun init(width: Int, height: Int) {
         for ((txtId, txtFile) in Textures.FILES) {
-            textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
+            try {
+                textures[txtId] = Texture(javaClass.classLoader.getResource(txtFile))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                error("can't load txt id $txtId (file: $txtFile): $e")
+            }
         }
 
         this.width = width
@@ -178,13 +183,21 @@ class WorldRenderer {
         textureUniformHandle = glGetUniformLocation(program, "u_Texture")
         textureCoordinateHandle = glGetAttribLocation(program, "a_TexCoordinate")
 
-        glClearColor(10f/255f,2f/255f,36f/255f, 1f) //  sky
+        glClearColor(6f/255f,2f/255f,20f/255f, 1f) //  sky
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
         glViewport(0, 0, width, height)
         glEnable(GL_CULL_FACE)
         glEnable(GL_DEPTH_TEST)
         glUseProgram(program)
         glActiveTexture(GL_TEXTURE0)
+
+
+        // TODO: que al darle textureMultiplier, use la misma escala para largo y ancho.
+
+
+        // obtener el lado mas grande de cada cara.
+        // a eso se aplica la coordinates.
+        // ahora, obtener el lado para
 
         projectionMatrix
             .identity()
@@ -214,7 +227,7 @@ class WorldRenderer {
 
         lightModelMatrix
             .identity()
-            .translate(0f, -40f, -5f)
+            .translate(0f, -20f, -5f)
             .rotate(radians(angleInDegrees), 0f, 1f, 0f)
             .translate(0f, 0f, 2f)
 

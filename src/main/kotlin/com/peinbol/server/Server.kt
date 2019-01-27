@@ -2,6 +2,7 @@ package com.peinbol.server
 
 import com.peinbol.*
 import java.util.*
+import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
 
 /**
@@ -105,57 +106,58 @@ class Server {
         // build 4 walls
         addBox(Box(
             id = generateId(),
-            position = Vector3f(-50f, -45f, 0f),
-            size = Vector3f(2f, 10f, 100f),
+            position = Vector3f(-50f, -65f, 0f),
+            size = Vector3f(2f, 50f, 100f),
             affectedByPhysics = false,
-            textureId = Textures.CLOTH_ID,
-            textureMultiplier = 35.0
+            textureId = Textures.BRICKS_GREY_ID,
+            textureMultiplier = 10.0
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(50f, -45f, 0f),
-            size = Vector3f(2f, 10f, 100f),
+            position = Vector3f(50f, -65f, 0f),
+            size = Vector3f(2f, 50f, 100f),
             affectedByPhysics = false,
-            textureId = Textures.CLOTH_ID,
-            textureMultiplier = 35.0
+            textureId = Textures.BRICKS_GREY_ID,
+            textureMultiplier = 10.0
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(0f, -45f, -50f),
-            size = Vector3f(100f, 10f, 2f),
+            position = Vector3f(0f, -65f, -50f),
+            size = Vector3f(100f, 50f, 2f),
             affectedByPhysics = false,
-            textureId = Textures.CLOTH_ID,
-            textureMultiplier = 35.0
+            textureId = Textures.BRICKS_GREY_ID,
+            textureMultiplier = 10.0
         ))
         addBox(Box(
             id = generateId(),
-            position = Vector3f(0f, -45f, 50f),
-            size = Vector3f(100f, 10f, 2f),
+            position = Vector3f(0f, -65f, 50f),
+            size = Vector3f(100f, 50f, 2f),
             affectedByPhysics = false,
-            textureId = Textures.CLOTH_ID,
-            textureMultiplier = 35.0
+            textureId = Textures.BRICKS_GREY_ID,
+            textureMultiplier = 10.0
         ))
 
         // some random walls
-        for (i in 0..randBetween(10, 40)) {
-            val length = randBetween(5, 10).toFloat()
+        for (i in 0..25) {
+            val length = 6f
             val axis = randBetween(0, 2)
+            val height = randBetween(3, 10).toFloat()
             addBox(Box(
                 id = generateId(),
                 position = Vector3f(
                     randBetween(-50, 50).toFloat(),
-                    -45f,
+                    -48f,
                     randBetween(-50, 50).toFloat()
                 ),
                 size = Vector3f(
                     if (axis == 0) 2f else length,
-                    9f,
+                    height,
                     if (axis == 0) length else 2f
                 ),
                 affectedByPhysics = false,
                 mass = 0f,
                 textureId = Textures.METAL_ID,
-                textureMultiplier = 35.0
+                textureMultiplier = 1.0
             ))
         }
     }
@@ -321,10 +323,11 @@ class Server {
                 id = generateId(),
                 mass = 3f,
                 position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(inputState.cameraY, inputState.cameraX, frontPos),
-                size = Vector3f(0.1f, 0.0f, 0.0f),
-                textureId = Textures.RUBIK_ID,
+                size = Vector3f(0.2f, 0.2f, 0.2f),
+                textureId = Textures.METAL_ID,
                 textureMultiplier = 1.0,
                 bounceMultiplier = 0.8f,
+                theColor = Color4f(Math.random().toFloat(), Math.random().toFloat(), Math.random().toFloat(), 1f),
                 isSphere = true
             )
             addBox(box)

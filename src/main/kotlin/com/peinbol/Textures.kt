@@ -8,6 +8,7 @@ object Textures {
     const val CREEPER_ID = 5
     const val FOOTBALL_ID = 6
     const val GRASS_ID = 7
+    const val BRICKS_GREY_ID = 8
 
     // this files should be loaded by Window
     val FILES = mapOf(
@@ -17,6 +18,7 @@ object Textures {
         CLOTH_ID to "cloth.png",
         CREEPER_ID to "creeper.png",
         FOOTBALL_ID to "football.png",
-        GRASS_ID to "grass.png"
+        GRASS_ID to "grass.png",
+        BRICKS_GREY_ID to "greybricks.png"
     )
 }
