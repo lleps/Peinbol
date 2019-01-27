@@ -19,7 +19,10 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
         private const val CROSSHAIR_MAX_RADIUS = 60f
     }
 
+    var visible = true
+
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+        if (!visible) return
         MemoryStack.stackPush().use { stack ->
             val crosshairRingColor = NkColor.callocStack(stack).set(0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte())
             val crosshairCenterColor = NkColor.callocStack(stack).set(0xC6.toByte(), 0x28.toByte(), 0x28.toByte(), 0xFF.toByte())

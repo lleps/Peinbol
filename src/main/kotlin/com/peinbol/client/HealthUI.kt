@@ -19,8 +19,10 @@ class HealthUI : NkUIDrawable {
     private val progressPtr = BufferUtils.createPointerBuffer(1).put(0, 220)
 
     var health: Int = 100
+    var visible = true
 
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+        if (!visible) return
         MemoryStack.stackPush().use { stack ->
             val crosshairCenterColor = NkColor.callocStack(stack).set(0xC6.toByte(), 0x28.toByte(), 0x28.toByte(), 0xFF.toByte())
             val barWidth = 400f

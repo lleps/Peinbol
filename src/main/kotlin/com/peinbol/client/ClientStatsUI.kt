@@ -15,7 +15,10 @@ class ClientStatsUI(
     private val network: Network.Client
 ) : NkUIDrawable {
 
+    var visible = true
+
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+        if (!visible) return
         val statCount = 3 // cpu+net fps 60  phys xms   draw xms |  ping 50ms  out 25kb/s  in 25/s   mem used/alloc/Max
         nkBeginDefaultWindow(
             ctx,

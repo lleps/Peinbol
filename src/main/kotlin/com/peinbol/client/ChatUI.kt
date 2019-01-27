@@ -20,7 +20,10 @@ class ChatUI : NkUIDrawable {
         if (messages.size > 20) messages = messages.takeLast(20)
     }
 
+    var visible = true
+
     override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+        if (!visible) return
         messages = messages.filter { System.currentTimeMillis() - it.timeOfCreation < MSG_EXPIRY_MILLIS }
         val longestMsg = messages.maxBy { it.msg.length }?.msg?.length ?: 1
         val width = longestMsg * WIDTH_PER_CHARACTER
