@@ -317,7 +317,7 @@ class Server {
         // Shot
         if (inputState.fire && System.currentTimeMillis() - player.lastShot > 200) {
             player.lastShot = System.currentTimeMillis()
-            val shotForce = 360.0f
+            val shotForce = 300.0f
             val frontPos = 1.5f
             val box = Box(
                 id = generateId(),

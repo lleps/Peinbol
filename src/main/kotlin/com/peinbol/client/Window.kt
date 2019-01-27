@@ -208,7 +208,8 @@ class Window {
         }
 
     fun isKeyPressed(key: Int): Boolean {
-        return glfwGetKey(window, key) == GLFW_PRESS
+        val state = glfwGetKey(window, key)
+        return state == GLFW_PRESS || state == GLFW_REPEAT
     }
 
     fun isMouseButtonDown(button: Int): Boolean {

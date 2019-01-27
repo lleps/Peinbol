@@ -7,8 +7,8 @@ class AudioSource(
     var volume: Float,
     val audioId: Int,
     var ratio: Float,
-    var pitch: Float = 1f,
-    var loop: Int = 0
+    var loop: Boolean,
+    var pitch: Float = 1f
 ) {
     // implementation-specific. To be used by AudioManager manager.
     var sourceId: Int = 0

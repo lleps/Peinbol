@@ -40,14 +40,13 @@ class AudioManager {
         }
     }
 
-    fun registerSource(source: AudioSource, loop: Int) {
+    fun registerSource(source: AudioSource) {
         if (source in sources) return
         val bufferForId = audioBuffers[source.audioId] ?: error("can't get buffer for audio id: ${source.audioId}")
         val sourcePointer = alGenSources()
         alSourcei(sourcePointer, AL_BUFFER, bufferForId)
-        alSourcei(sourcePointer, AL_LOOPING, loop)
+        alSourcei(sourcePointer, AL_LOOPING, if (source.loop) AL_TRUE else AL_FALSE)
         source.sourceId = sourcePointer
-        source.loop = loop
         alSourcePlay(sourcePointer)
         sources.add(source)
     }
@@ -74,13 +73,13 @@ class AudioManager {
                 playing = soundState[0] == AL_PLAYING
             }
             // Check if the sound finished
-            if (!playing && source.loop == 0) {
+            if (!playing && !source.loop) {
                 alSourceStop(source.sourceId)
                 alDeleteSources(source.sourceId)
                 iterator.remove()
             } else {
                 alSource3f(source.sourceId, AL_POSITION, source.position.x, source.position.y, source.position.z)
-                alSourcef(source.sourceId, AL_GAIN, source.volume)
+                alSourcef(source.sourceId, AL_GAIN, source.volume * 0.7f)
                 alSourcef(source.sourceId, AL_PITCH, source.pitch)
                 alSourcef(source.sourceId, AL_ROLLOFF_FACTOR, 2.5f)
                 alSourcef(source.sourceId, AL_MAX_DISTANCE, source.ratio)

@@ -2,10 +2,7 @@ package com.peinbol.client
 
 import com.peinbol.timedOscillator
 import org.lwjgl.BufferUtils
-import org.lwjgl.nuklear.NkColor
-import org.lwjgl.nuklear.NkContext
-import org.lwjgl.nuklear.NkRect
-import org.lwjgl.nuklear.NkStyleItem
+import org.lwjgl.nuklear.*
 import org.lwjgl.nuklear.Nuklear.*
 import org.lwjgl.system.MemoryStack
 import javax.vecmath.Vector3f
@@ -25,14 +22,17 @@ class HealthUI : NkUIDrawable {
         if (!visible) return
         MemoryStack.stackPush().use { stack ->
             val crosshairCenterColor = NkColor.callocStack(stack).set(0xC6.toByte(), 0x28.toByte(), 0x28.toByte(), 0xFF.toByte())
+            val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
+            val col2 = NkColor.callocStack(stack).set(0x63.toByte(), 0xFF.toByte(), 0x99.toByte(), 0xFF.toByte())
             val barWidth = 400f
             val barHeight = 30f
             nkBeginTransparentWindow(ctx, "health", (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f, barWidth, barHeight+10) {
                 nk_layout_row_dynamic(ctx, barHeight, 1)
                 progressPtr.clear().put(0, health.toLong())
-                ctx.style().progress().active().data().color().set(crosshairCenterColor)
-                ctx.style().progress().cursor_active().data().color().set(crosshairCenterColor)
+                //ctx.style().progress().active().data().color().set(crosshairCenterColor)
+                //ctx.style().progress().cursor_active().data().color().set(crosshairCenterColor)
                 ctx.style().progress().cursor_normal().data().color().set(crosshairCenterColor)
+                ctx.style().progress().normal().data().color(BLACK_TRANSPARENT)
                 nk_progress(ctx, progressPtr, 100, false)
             }
         }
