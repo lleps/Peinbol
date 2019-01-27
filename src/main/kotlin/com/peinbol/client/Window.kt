@@ -4,6 +4,7 @@ import com.bulletphysics.linearmath.Transform
 import com.peinbol.Box
 import com.peinbol.Color
 import com.peinbol.Textures
+import com.peinbol.test.MyGLCode
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
@@ -25,35 +26,51 @@ import kotlin.collections.mutableMapOf
 import kotlin.collections.set
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.properties.Delegates
 
 class Window {
     private var width = 800
     private var height = 600
 
     // TODO: move to methods.
-    var boxes: List<Box> = emptyList()
-
+    var boxes: List<Box> by Delegates.observable(emptyList()) { _, old, new ->
+        val added = new - old
+        added.forEach { worldDrawer.addBox(it) }
+        val removed = old - new
+        removed.forEach { worldDrawer.removeBox(it) }
+    }
 
     var fov: Float = 30f
     var aspectRatioMultiplier = 1f
-    var cameraPosX = 0f
-    var cameraPosY = 0f
-    var cameraPosZ = 0f
 
-    var cameraRotX = 0f
+
+    var cameraPosX: Float
+        get() = worldDrawer.cameraPosX
         set(value) {
-            field = value.coerceIn(-85f, 85f) % 360f
+            worldDrawer.cameraPosX = value
+        }
+    var cameraPosY: Float
+        get() = worldDrawer.cameraPosY
+        set(value) {
+            worldDrawer.cameraPosY = value
+        }
+    var cameraPosZ: Float
+        get() = worldDrawer.cameraPosZ
+        set(value) {
+            worldDrawer.cameraPosZ = value
         }
 
-    var cameraRotY = 0f
+    var cameraRotX: Float
+        get() = worldDrawer.cameraRotX
         set(value) {
-            field = value % 360f
+            worldDrawer.cameraRotX = value
         }
-
+    var cameraRotY: Float
+        get() = worldDrawer.cameraRotY
+        set(value) {
+            worldDrawer.cameraRotY = value
+        }
     var cameraRotZ = 0f
-        set(value) {
-            field = value % 360f
-        }
 
     var mouseDeltaX: Float = 0f
         private set
@@ -70,6 +87,7 @@ class Window {
     private var window: Long = 0
     private val textures = mutableMapOf<Int, Texture>()
     private val uiDrawer = NkGLBackend()
+    private val worldDrawer = MyGLCode(1366, 768)
     private val uiDrawables = hashMapOf<Class<out NkUIDrawable>, NkUIDrawable>()
 
     /** Register a drawable instance for the given class. Throws an exception if
@@ -134,6 +152,7 @@ class Window {
         glfwSetWindowTitle(window, "Snower")
         GL.createCapabilities()
 
+        worldDrawer.init()
         uiDrawer.init(window)
 
         for ((txtId, txtFile) in Textures.FILES) {
@@ -141,104 +160,16 @@ class Window {
         }
     }
 
-    private fun setup3DView() {
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(fov.toDouble(), aspectRatioMultiplier * (width.toDouble() / height.toDouble()), 0.001, 1000.0)
-        glMatrixMode(GL_MODELVIEW)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)
-        glEnable(GL_TEXTURE_2D)
-        glCullFace(GL_BACK)
-    }
-
-    private fun gluPerspective(fovY: Double, aspect: Double, zNear: Double, zFar: Double) {
-        val fH: Double = Math.tan(Math.toRadians(fovY)) * zNear
-        val fW = fH * aspect
-        glFrustum(-fW, fW, -fH, fH, zNear, zFar)
-    }
-
     private var fpsCount: Long = 0
     private var countFpsExpiry = System.currentTimeMillis() + 1000
-
-    // cached for drawing with bullet matrix
-    private var matrix = FloatArray(16)
-    private var transform = Transform()
-    private var transformBuffer = BufferUtils.createFloatBuffer(16)
 
     fun draw() {
         val start = System.nanoTime()
 
-        val skyColor = Color(152.0 / 255.0, 209.0 / 255.0, 214.0 / 255.0)
-        glClearColor(
-            skyColor.r.toFloat(),
-            skyColor.g.toFloat(),
-            skyColor.b.toFloat(),
-            skyColor.a.toFloat()
-        )
-        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-
-        // Draw world. Init state because uiDrawer may alter it
-        setup3DView()
-        glLoadIdentity()
-        glRotatef(-cameraRotX, 1f, 0f, 0f)
-        glRotatef(-cameraRotY, 0f, 1f, 0f)
-        glRotatef(-cameraRotZ, 0f, 0f, 1f)
-        glTranslatef(-cameraPosX, -cameraPosY, -cameraPosZ)
-
-        val ambientLight = 0.8f
-        for (box in boxes) {
-            textures[box.textureId]?.bind()
-            glColor3f(box.theColor.x * ambientLight, box.theColor.y * ambientLight, box.theColor.z * ambientLight)
-            glPushMatrix()
-
-            // set position and rotation based on the rigid body
-            val bodyMotionState = box.rigidBody!!.motionState
-            bodyMotionState.getWorldTransform(transform)
-            transform.getOpenGLMatrix(matrix)
-            transformBuffer.clear()
-            transformBuffer.put(matrix)
-            transformBuffer.flip()
-            glMultMatrixf(transformBuffer)
-
-            if (box.isSphere) {
-                drawSphere(box.size.x, 20, 20)
-            } else {
-                glScalef(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
-                glBegin(GL_QUADS)
-                val top = box.textureMultiplier
-                glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0,  1.0)
-                glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0,  1.0)
-                glTexCoord2d(top, top); glVertex3d( 1.0,  1.0,  1.0)
-                glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0,  1.0)
-                glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0, -1.0)
-                glTexCoord2d(top, top); glVertex3d(-1.0,  1.0, -1.0)
-                glTexCoord2d(0.0, top); glVertex3d( 1.0,  1.0, -1.0)
-                glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0, -1.0)
-                glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0, -1.0)
-                glTexCoord2d(0.0, 0.0); glVertex3d(-1.0,  1.0,  1.0)
-                glTexCoord2d(top, 0.0); glVertex3d( 1.0,  1.0,  1.0)
-                glTexCoord2d(top, top); glVertex3d( 1.0,  1.0, -1.0)
-                glTexCoord2d(top, top); glVertex3d(-1.0, -1.0, -1.0)
-                glTexCoord2d(0.0, top); glVertex3d( 1.0, -1.0, -1.0)
-                glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0,  1.0)
-                glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0,  1.0)
-                glTexCoord2d(top, 0.0); glVertex3d( 1.0, -1.0, -1.0)
-                glTexCoord2d(top, top); glVertex3d( 1.0,  1.0, -1.0)
-                glTexCoord2d(0.0, top); glVertex3d( 1.0,  1.0,  1.0)
-                glTexCoord2d(0.0, 0.0); glVertex3d( 1.0, -1.0,  1.0)
-                glTexCoord2d(0.0, 0.0); glVertex3d(-1.0, -1.0, -1.0)
-                glTexCoord2d(top, 0.0); glVertex3d(-1.0, -1.0,  1.0)
-                glTexCoord2d(top, top); glVertex3d(-1.0,  1.0,  1.0)
-                glTexCoord2d(0.0, top); glVertex3d(-1.0,  1.0, -1.0)
-                glEnd()
-            }
-            glPopMatrix()
-        }
-
-
-        // Draw UI
+        // Draw world & UI
+        worldDrawer.draw()
         uiDrawer.draw(window)
+
         // Stats
         fpsCount++
         if (System.currentTimeMillis() > countFpsExpiry) {
