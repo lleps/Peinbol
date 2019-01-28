@@ -1,5 +1,6 @@
 package com.peinbol.client
 
+import com.bulletphysics.linearmath.Transform
 import com.peinbol.*
 import org.joml.Matrix4f
 import org.joml.Vector4f
@@ -194,7 +195,7 @@ class WorldRenderer {
         glEnable(GL_DEPTH_TEST)
         glUseProgram(program)
         glActiveTexture(GL_TEXTURE0)
-
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         // TODO: que al darle textureMultiplier, use la misma escala para largo y ancho.
 
@@ -221,28 +222,32 @@ class WorldRenderer {
                 0f
             )
 
-        val toX = cameraPosX + cos(radians(cameraRotY))
-        val toY = cameraPosY + cos(radians(cameraRotX))
-        val toZ = cameraPosZ + sin(radians(cameraRotY))
-        //println("from: $cameraPosX $cameraPosY $cameraPosZ  to: $toX $toY $toZ   rot: $cameraRotX $cameraRotY")
-
         val time = System.currentTimeMillis() % 10000L
         val angleInDegrees = (360.0f / 10000.0f) * time.toInt()
 
         lightModelMatrix
             .identity()
-            .translate(0f, -20f, -5f)
+            .translate(0f, 40f, -5f)
             .rotate(radians(angleInDegrees), 0f, 1f, 0f)
             .translate(0f, 0f, 2f)
 
         lightPosInModelSpace.mul(lightModelMatrix, lightPosInWorldSpace)
         lightPosInWorldSpace.mul(viewMatrix, lightPosInEyeSpace)
 
+        val tmpTransform = Transform()
+        val tmpMatrix = FloatArray(16)
+
         for (box in boxes) {
-            modelMatrix
-                .identity()
-                .translate(box.position.x, box.position.y, box.position.z)
-                .scale(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
+            box.rigidBody!!.getWorldTransform(tmpTransform).getOpenGLMatrix(tmpMatrix)
+
+            modelMatrix.set(tmpMatrix)
+            modelMatrix.scale(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
+
+            if (box.theColor.w < 1f) {
+                glEnable(GL_BLEND)
+            } else {
+                glDisable(GL_BLEND)
+            }
 
             textures[box.textureId]?.bind()
             glUniform1i(textureUniformHandle, 0)

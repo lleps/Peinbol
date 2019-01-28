@@ -5,6 +5,7 @@ import org.lwjgl.glfw.GLFW.*
 import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
 import kotlin.concurrent.thread
+import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -113,6 +114,7 @@ class Client {
                     textureId = msg.textureId,
                     textureMultiplier = msg.textureMultiplier,
                     bounceMultiplier = msg.bounceMultiplier,
+                    theColor = msg.color,
                     isSphere = msg.isSphere,
                     isCharacter = msg.isCharacter
                 )
@@ -192,6 +194,7 @@ class Client {
             left = window.isKeyPressed(GLFW_KEY_A),
             right = window.isKeyPressed(GLFW_KEY_D),
             fire = window.isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT),
+            fire2 = window.isMouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT),
             jump = window.isKeyPressed(GLFW_KEY_SPACE),
             walk = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT),
             cameraX = window.cameraRotX,

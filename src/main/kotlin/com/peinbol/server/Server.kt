@@ -1,7 +1,6 @@
 package com.peinbol.server
 
 import com.peinbol.*
-import java.util.*
 import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
 
@@ -208,7 +207,7 @@ class Server {
             network.send(Messages.SetHealth(target.health), target.connection)
 
             target.collisionBox.angularVelocity = Vector3f()
-            target.collisionBox.position = Vector3f(randBetween(-20, 20).toFloat(), 0f, randBetween(-20, 20).toFloat())
+            target.collisionBox.position = Vector3f(randBetween(-20, 20).toFloat(), 5f, randBetween(-20, 20).toFloat())
         }
     }
 
@@ -327,6 +326,31 @@ class Server {
             bulletEmitter[box] = player
             box.applyForce(vectorFront(inputState.cameraY, inputState.cameraX, shotForce))
         }
+        if (inputState.fire2 && System.currentTimeMillis() - player.lastShot > 1000) {
+            player.lastShot = System.currentTimeMillis()
+            val shotForce = 300.0f
+            val frontPos = 1.5f
+            repeat(5) { idx ->
+                val i = idx - 2
+                val angleXOrientation = inputState.cameraY// + (i * 20f)
+                val angleXOrigin = inputState.cameraY + (i * 20f)
+                val box = Box(
+                    id = generateId(),
+                    mass = 3f,
+                    position = player.collisionBox.position + Vector3f(0f, 0.8f, 0f) + vectorFront(angleXOrigin, inputState.cameraX, frontPos),
+                    size = Vector3f(0.2f, 0.2f, 0.2f),
+                    textureId = Textures.METAL_ID,
+                    textureMultiplier = 1.0,
+                    bounceMultiplier = 0.8f,
+                    theColor = Color4f(Math.random().toFloat(), Math.random().toFloat(), Math.random().toFloat(), 1f),
+                    isSphere = true
+                )
+                addBox(box)
+                bulletsAddTimestamp[box] = System.currentTimeMillis()
+                bulletEmitter[box] = player
+                box.applyForce(vectorFront(angleXOrientation, inputState.cameraX, shotForce))
+            }
+        }
     }
 
     private fun buildStreamBoxMsg(box: Box): Messages.BoxAdded {
@@ -342,6 +366,7 @@ class Server {
             textureId = box.textureId,
             textureMultiplier = box.textureMultiplier,
             bounceMultiplier = box.bounceMultiplier,
+            color = box.theColor,
             isSphere = box.isSphere,
             isCharacter = box.isCharacter
         )

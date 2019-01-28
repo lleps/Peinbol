@@ -5,6 +5,7 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ReplayingDecoder
 import java.lang.StringBuilder
+import javax.vecmath.Color4f
 import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 import kotlin.reflect.KClass
@@ -84,6 +85,7 @@ object Messages {
         val left: Boolean = false, // 1
         val right: Boolean = false, // 1
         val fire: Boolean = false, // 1
+        val fire2: Boolean = false, // 1
         val jump: Boolean = false, // 1
         val walk: Boolean = false, // 1
         val cameraX: Float = 0f, // 4
@@ -91,7 +93,7 @@ object Messages {
     ) {
         companion object : MessageType<InputState> {
             override val bytes: Int
-                get() = (1*7) + (4*2)
+                get() = (1*8) + (4*2)
 
             override fun write(msg: InputState, buf: ByteBuf) {
                 buf.writeBoolean(msg.forward)
@@ -99,6 +101,7 @@ object Messages {
                 buf.writeBoolean(msg.left)
                 buf.writeBoolean(msg.right)
                 buf.writeBoolean(msg.fire)
+                buf.writeBoolean(msg.fire2)
                 buf.writeBoolean(msg.jump)
                 buf.writeBoolean(msg.walk)
                 buf.writeFloat(msg.cameraX)
@@ -107,6 +110,7 @@ object Messages {
 
             override fun read(buf: ByteBuf): InputState {
                 return InputState(
+                    buf.readBoolean(),
                     buf.readBoolean(),
                     buf.readBoolean(),
                     buf.readBoolean(),
@@ -156,10 +160,20 @@ object Messages {
         writeFloat(quat.w)
     }
 
+    private fun ByteBuf.writeColor4f(color: Color4f) {
+        writeFloat(color.x)
+        writeFloat(color.y)
+        writeFloat(color.z)
+        writeFloat(color.w)
+    }
+
+    private fun ByteBuf.readColor4f(): Color4f {
+        return Color4f(readFloat(), readFloat(), readFloat(), readFloat())
+    }
+
     private fun ByteBuf.readQuat4f(): Quat4f {
         return Quat4f(readFloat(), readFloat(), readFloat(), readFloat())
     }
-
 
     /** Writes [maxLength]*2 bytes in the buffer with [string] on it. Throws an exception if the string is too long. */
     private fun ByteBuf.writeString(string: String, maxLength: Int) {
@@ -196,12 +210,13 @@ object Messages {
         val textureId: Int, // 4
         val textureMultiplier: Double, // 8
         val bounceMultiplier: Float, // 4
+        val color: Color4f, // 4*4
         val isSphere: Boolean, // 1
         val isCharacter: Boolean // 1
     ) {
         companion object : MessageType<BoxAdded> {
             override val bytes: Int
-                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4+1+1
+                get() = 4+(4*3)+(4*3)+(4*3)+(4*3)+(4*4)+4+1+4+8+4+(4*4)+1+1
 
             override fun write(msg: BoxAdded, buf: ByteBuf) {
                 buf.writeInt(msg.id)
@@ -215,6 +230,7 @@ object Messages {
                 buf.writeInt(msg.textureId)
                 buf.writeDouble(msg.textureMultiplier)
                 buf.writeFloat(msg.bounceMultiplier)
+                buf.writeColor4f(msg.color)
                 buf.writeBoolean(msg.isSphere)
                 buf.writeBoolean(msg.isCharacter)
             }
@@ -232,6 +248,7 @@ object Messages {
                     buf.readInt(),
                     buf.readDouble(),
                     buf.readFloat(),
+                    buf.readColor4f(),
                     buf.readBoolean(),
                     buf.readBoolean()
                 )

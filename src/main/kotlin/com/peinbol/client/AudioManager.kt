@@ -47,6 +47,7 @@ class AudioManager {
         alSourcei(sourcePointer, AL_BUFFER, bufferForId)
         alSourcei(sourcePointer, AL_LOOPING, if (source.loop) AL_TRUE else AL_FALSE)
         source.sourceId = sourcePointer
+        source.startMillis = System.currentTimeMillis()
         alSourcePlay(sourcePointer)
         sources.add(source)
     }
@@ -63,6 +64,7 @@ class AudioManager {
         alListener3f(AL_POSITION, listenerPosition.x, listenerPosition.y, listenerPosition.z)
         alListenerfv(AL_ORIENTATION, floatArrayOf(cameraVector.x, cameraVector.y, cameraVector.z, 0.0f, 1.0f, 0.0f))
         alListener3f(AL_VELOCITY, 0f, 0f, 0f)
+        val now = System.currentTimeMillis()
         val iterator = sources.iterator()
         while (iterator.hasNext()) {
             val source = iterator.next()
@@ -73,7 +75,7 @@ class AudioManager {
                 playing = soundState[0] == AL_PLAYING
             }
             // Check if the sound finished
-            if (!playing && !source.loop) {
+            if ((!playing && !source.loop) || (source.millis > 0 && now >= source.startMillis + source.millis)) {
                 alSourceStop(source.sourceId)
                 alDeleteSources(source.sourceId)
                 iterator.remove()
