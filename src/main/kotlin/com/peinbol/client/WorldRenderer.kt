@@ -11,6 +11,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.Charset
 import java.nio.FloatBuffer
+import javax.vecmath.Color4f
+import javax.vecmath.Vector3f
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -225,15 +227,23 @@ class WorldRenderer {
         val time = System.currentTimeMillis() % 10000L
         val angleInDegrees = (360.0f / 10000.0f) * time.toInt()
 
+        val thePos = boxes.firstOrNull { it.isSphere }?.position ?: Vector3f(0f, 30f, 0f)
         lightModelMatrix
             .identity()
-            .translate(0f, 40f, -5f)
+            .translate(0f, 20f, 0f)
             .rotate(radians(angleInDegrees), 0f, 1f, 0f)
-            .translate(0f, 0f, 2f)
+            .translate(0f, 0f, 50f)
+            //.scale(50f, 5f, 50f)
 
         lightPosInModelSpace.mul(lightModelMatrix, lightPosInWorldSpace)
         lightPosInWorldSpace.mul(viewMatrix, lightPosInEyeSpace)
 
+
+        modelMatrix.set(lightModelMatrix)
+        drawCube(Box(
+            textureId = Textures.METAL_ID,
+            theColor = Color4f(1.0f, 1f, 1f, 1f)
+        ))
         val tmpTransform = Transform()
         val tmpMatrix = FloatArray(16)
 
