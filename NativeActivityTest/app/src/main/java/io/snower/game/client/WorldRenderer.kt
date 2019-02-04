@@ -1,16 +1,17 @@
-package io.snower.game.client;
+package io.snower.game.client
 
+import android.opengl.Matrix
+import android.util.Log
 import io.snower.game.common.*
-import org.joml.Matrix4f
 import org.joml.Vector4f
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import javax.vecmath.Color4f
-import javax.vecmath.Vector3f
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.system.measureTimeMillis
 
 /**
  * Renders the world and loadAssets the assets that are necessary for
@@ -28,16 +29,46 @@ class WorldRenderer(
         private const val COLOR_DATA_SIZE = 4
         private const val NORMAL_DATA_SIZE = 3
         private const val TEXTURE_COORDS_DATA_SIZE = 2
+
+        private val TXT_BASE_COORDS = floatArrayOf(
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, // Front face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, // Right face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, // Back face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, // Left face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, // Top face
+            0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f // Bottom face
+        )
     }
 
     private val mCubePositions: FloatBuffer
-    private val mCubeColors: FloatBuffer
     private val mCubeNormals: FloatBuffer
     private val mCubeTextureCoordinates: FloatBuffer
     private val mCubeTextureCoordinatesRef: FloatBuffer
 
     private var width: Int = 0
     private var height: Int = 0
+
+
+
+    /** Encapsulate data necessary to speed up rendering of boxes */
+    private class BoxRenderer(private val box: Box) {
+        val colorBuffer: FloatBuffer = BufferUtils.createFloatBuffer(6*6*4)
+        val textureCoordsBuffer: FloatBuffer = BufferUtils.createFloatBuffer(6*6*2)
+
+        init {
+            val (r,g,b,a) = box.theColor
+            val m = box.textureMultiplier.toFloat()
+            repeat(6*6) {
+                colorBuffer.put(r)
+                colorBuffer.put(g)
+                colorBuffer.put(b)
+                colorBuffer.put(a)
+            }
+            repeat(6*6*2) { i ->
+                textureCoordsBuffer.put(TXT_BASE_COORDS[i] * m)
+            }
+        }
+    }
 
     init {
         val cubePositionData = floatArrayOf(
@@ -53,21 +84,6 @@ class WorldRenderer(
             -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
             // Bottom face
             1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f)
-
-        // R, G, B, A
-        val cubeColorData = floatArrayOf(
-            // Front face (red)
-            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-            // Right face (green)
-            0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-            // Back face (blue)
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-            // Left face (yellow)
-            1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-            // Top face (cyan)
-            0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            // Bottom face (magenta)
-            1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f)
 
         val cubeNormalData = floatArrayOf(
             // Front face
@@ -101,9 +117,7 @@ class WorldRenderer(
         mCubePositions = ByteBuffer.allocateDirect(cubePositionData.size * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
         mCubePositions.put(cubePositionData).position(0)
-        mCubeColors = ByteBuffer.allocateDirect(cubeColorData.size * BYTES_PER_FLOAT)
-            .order(ByteOrder.nativeOrder()).asFloatBuffer()
-        mCubeColors.put(cubeColorData).position(0)
+
         mCubeNormals = ByteBuffer.allocateDirect(cubeNormalData.size * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
         mCubeNormals.put(cubeNormalData).position(0)
@@ -115,15 +129,76 @@ class WorldRenderer(
         mCubeTextureCoordinatesRef.put(cubeTextureCoordinateData).position(0)
     }
 
-    private val viewMatrix = Matrix4f()
-    private val projectionMatrix = Matrix4f()
-    private val modelMatrix = Matrix4f()
-    private val mvpMatrix = Matrix4f()
-    private val lightModelMatrix = Matrix4f()
+    /** Defines matrix-vector and matrix-matrix operations used in the renderer. */
+    interface MatrixOps {
+        fun multiplyMM(dst: FloatArray, lhs: FloatArray, rhs: FloatArray)
+        fun multiplyMV(dstVec: FloatArray, lhsMat: FloatArray, rhsVec: FloatArray)
+        fun identity(dst: FloatArray)
+        fun perspective(dst: FloatArray, fovy: Float, aspect: Float, zNear: Float, zFar: Float)
+        fun lookAt(dst: FloatArray,
+                   eyeX: Float, eyeY: Float, eyeZ: Float,
+                   centerX: Float, centerY: Float, centerZ: Float,
+                   upX: Float, upY: Float, upZ: Float)
+        fun translate(dst: FloatArray, x: Float, y: Float, z: Float)
+        fun rotate(dst: FloatArray, angleDegrees: Float, x: Float, y: Float, z: Float)
+        fun scale(dst: FloatArray, x: Float, y: Float, z: Float)
+    }
 
-    private val lightPosInModelSpace = Vector4f(0f, 0f, 0f, 1f)
-    private val lightPosInWorldSpace = Vector4f()
-    private val lightPosInEyeSpace = Vector4f()
+    class AndroidMatrixOps : MatrixOps {
+        override fun multiplyMM(dst: FloatArray, lhs: FloatArray, rhs: FloatArray) {
+            Matrix.multiplyMM(dst, 0, lhs, 0, rhs, 0)
+        }
+
+        override fun multiplyMV(dstVec: FloatArray, lhsMat: FloatArray, rhsVec: FloatArray) {
+            Matrix.multiplyMV(dstVec, 0, lhsMat, 0, rhsVec, 0)
+        }
+
+        override fun identity(dst: FloatArray) {
+            Matrix.setIdentityM(dst, 0)
+        }
+
+        override fun perspective(dst: FloatArray, fovy: Float, aspect: Float, zNear: Float, zFar: Float) {
+            Matrix.perspectiveM(dst, 0, fovy, aspect, zNear, zFar)
+        }
+
+        override fun lookAt(
+            dst: FloatArray,
+            eyeX: Float,
+            eyeY: Float,
+            eyeZ: Float,
+            centerX: Float,
+            centerY: Float,
+            centerZ: Float,
+            upX: Float,
+            upY: Float,
+            upZ: Float
+        ) {
+            Matrix.setLookAtM(dst, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ)
+        }
+
+        override fun translate(dst: FloatArray, x: Float, y: Float, z: Float) {
+            Matrix.translateM(dst, 0, x, y, z)
+        }
+
+        override fun rotate(dst: FloatArray, angleDegrees: Float, x: Float, y: Float, z: Float) {
+            Matrix.rotateM(dst, 0, angleDegrees, x, y, z)
+        }
+
+        override fun scale(dst: FloatArray, x: Float, y: Float, z: Float) {
+            Matrix.scaleM(dst, 0, x, y, z)
+        }
+    }
+
+    private val matrixOps = AndroidMatrixOps()
+    private val viewMatrix = FloatArray(16)
+    private val projectionMatrix = FloatArray(16)
+    private val modelMatrix = FloatArray(16)
+    private val mvpMatrix = FloatArray(16)
+    private val lightModelMatrix = FloatArray(16)
+
+    private val lightPosInModelSpace = floatArrayOf(0f, 0f, 0f, 1f)
+    private val lightPosInWorldSpace = FloatArray(4)
+    private val lightPosInEyeSpace = FloatArray(4)
 
     private var program: Int = 0
     private var mvpMatrixHandle = 0
@@ -135,7 +210,7 @@ class WorldRenderer(
     private var textureUniformHandle = 0
     private var textureCoordinateHandle = 0
 
-    private val boxes = mutableListOf<Box>()
+    private val boxes = mutableSetOf<Box>()
 
     // Assets. Kept in memory for performance.
     private val textures = mutableMapOf<Int, GLTextureWrapper>()
@@ -144,12 +219,18 @@ class WorldRenderer(
 
     /** Adds [box] to the drawing list.*/
     fun addBox(box: Box) {
-        boxes += box
+        if (box !in boxes) {
+            boxes += box
+            box.rendererHandle = BoxRenderer(box)
+        }
     }
 
     /** Removes [box] from the drawing list. */
     fun removeBox(box: Box) {
-        boxes -= box
+        if (box in boxes) {
+            boxes -= box
+            box.rendererHandle = null
+        }
     }
 
     /** Sets where should sit the camera. */
@@ -232,48 +313,38 @@ class WorldRenderer(
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
-        projectionMatrix
-            .identity()
-            .perspective(30f, width.toFloat()/height.toFloat(), 0.001f, 1000f)
+        matrixOps.identity(projectionMatrix)
+        matrixOps.perspective(projectionMatrix, 30f, width.toFloat()/height.toFloat(), 0.001f, 1000f)
 
-        viewMatrix
-            .identity()
-            .lookAt(
-                cameraPosX,
-                cameraPosY,
-                cameraPosZ,
-                cameraPosX + cos(radians(-cameraRotY - 90f)),
-                cameraPosY - sin(radians(-cameraRotX)),
-                cameraPosZ + sin(radians(-cameraRotY - 90f)),
-                0f,
-                -1f,
-                0f
-            )
+        matrixOps.identity(viewMatrix)
+        matrixOps.lookAt(viewMatrix,
+            cameraPosX,
+            cameraPosY,
+            cameraPosZ,
+            cameraPosX + cos(-cameraRotY - 90f),
+            cameraPosY - sin(-cameraRotX),
+            cameraPosZ + sin(-cameraRotY - 90f),
+            0f,
+            1f,
+            0f)
 
         // Draw the light as a box
         val time = System.currentTimeMillis() % 10000L
         val angleInDegrees = (360.0f / 10000.0f) * time.toInt()
-        lightModelMatrix
-            .identity()
-            .translate(0f, 20f, 0f)
-            .rotate(radians(angleInDegrees), 0f, 1f, 0f)
-            .translate(0f, 0f, 50f)
-        lightPosInModelSpace.mul(lightModelMatrix, lightPosInWorldSpace)
-        lightPosInWorldSpace.mul(viewMatrix, lightPosInEyeSpace)
+        matrixOps.identity(lightModelMatrix)
+        matrixOps.translate(lightModelMatrix, 0f, 20f, 0f)
+        matrixOps.rotate(lightModelMatrix, angleInDegrees, 0f, 1f, 0f)
+        matrixOps.translate(lightModelMatrix, 0f, 0f, 50f)
 
-        modelMatrix.set(lightModelMatrix)
-        drawCube(Box(
-            textureId = Textures.METAL_ID,
-            theColor = Color4f(1.0f, 1f, 1f, 1f)
-        ))
+        // Convert to lightPosInEyeSpace
+        matrixOps.multiplyMV(lightPosInWorldSpace, lightModelMatrix, lightPosInModelSpace)
+        matrixOps.multiplyMV(lightPosInEyeSpace, viewMatrix, lightPosInWorldSpace)
+        gl.glUniform3f(lightPosHandle, lightPosInEyeSpace[0], lightPosInEyeSpace[1], lightPosInEyeSpace[2])
 
         // Draw all boxes
-        val tmpMatrix = FloatArray(16)
         for (box in boxes) {
-            physicsInterface.getBoxOpenGLMatrix(box, tmpMatrix)
-
-            modelMatrix.set(tmpMatrix)
-            modelMatrix.scale(box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
+            physicsInterface.getBoxOpenGLMatrix(box, modelMatrix)
+            matrixOps.scale(modelMatrix, box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
 
             if (box.theColor.w < 1f) {
                 gl.glEnable(gl.GL_BLEND)
@@ -287,48 +358,36 @@ class WorldRenderer(
         }
     }
 
-    private val tmpArrayBuffer = FloatArray(16)
 
     private fun drawCube(box: Box) {
+        val renderer = box.rendererHandle as BoxRenderer
+
+        // pass vertex position
         mCubePositions.position(0)
         gl.glVertexAttribPointer(positionHandle, POSITION_DATA_SIZE, gl.GL_FLOAT, false, 0, mCubePositions)
         gl.glEnableVertexAttribArray(positionHandle)
 
-        // fill with box info the color. may be slow? To profile
-        mCubeColors.position(0)
-        val (r,g,b,a) = box.theColor
-        repeat(mCubeColors.capacity() / COLOR_DATA_SIZE) {
-            mCubeColors.put(r)
-            mCubeColors.put(g)
-            mCubeColors.put(b)
-            mCubeColors.put(a)
-        }
-        mCubeColors.position(0)
-        gl.glVertexAttribPointer(colorHandle, COLOR_DATA_SIZE, gl.GL_FLOAT, false, 0, mCubeColors)
+        // pass color
+        renderer.colorBuffer.position(0)
+        gl.glVertexAttribPointer(colorHandle, COLOR_DATA_SIZE, gl.GL_FLOAT, false, 0, renderer.colorBuffer)
         gl.glEnableVertexAttribArray(colorHandle)
 
+        // pass normals
         mCubeNormals.position(0)
         gl.glVertexAttribPointer(normalHandle, NORMAL_DATA_SIZE, gl.GL_FLOAT, false, 0, mCubeNormals)
         gl.glEnableVertexAttribArray(normalHandle)
 
-        mCubeTextureCoordinates.position(0)
-        repeat(mCubeTextureCoordinates.capacity()) { i ->
-            mCubeTextureCoordinates.put(mCubeTextureCoordinatesRef.get(i) * box.textureMultiplier.toFloat())
-        }
-        mCubeTextureCoordinates.position(0)
-        gl.glVertexAttribPointer(textureCoordinateHandle, TEXTURE_COORDS_DATA_SIZE, gl.GL_FLOAT, false, 0, mCubeTextureCoordinates)
+        // pass texture coordinates
+        renderer.textureCoordsBuffer.position(0)
+        gl.glVertexAttribPointer(textureCoordinateHandle, TEXTURE_COORDS_DATA_SIZE, gl.GL_FLOAT, false, 0, renderer.textureCoordsBuffer)
         gl.glEnableVertexAttribArray(textureCoordinateHandle)
 
-        // this matrix multiplications are slow? to profile
-        viewMatrix.mul(modelMatrix, mvpMatrix)
-        mvpMatrix.get(tmpArrayBuffer)
-        gl.glUniformMatrix4fv(mvMatrixHandle, false, tmpArrayBuffer)
+        matrixOps.multiplyMM(mvpMatrix, viewMatrix, modelMatrix)
+        gl.glUniformMatrix4fv(mvMatrixHandle, false, mvpMatrix)
 
-        projectionMatrix.mul(mvpMatrix, mvpMatrix)
-        mvpMatrix.get(tmpArrayBuffer)
-        gl.glUniformMatrix4fv(mvpMatrixHandle, false, tmpArrayBuffer)
+        matrixOps.multiplyMM(mvpMatrix, projectionMatrix, mvpMatrix)
+        gl.glUniformMatrix4fv(mvpMatrixHandle, false, mvpMatrix)
 
-        gl.glUniform3f(lightPosHandle, lightPosInEyeSpace.x, lightPosInEyeSpace.y, lightPosInEyeSpace.z)
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, 36)
     }
 

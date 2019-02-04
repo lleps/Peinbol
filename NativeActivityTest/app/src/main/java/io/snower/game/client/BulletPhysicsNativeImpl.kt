@@ -91,7 +91,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
         simulate(worldHandle, delta.toFloat()/1000f)
 
         // Poll simulation results back to java
-        for (box in boxes) {
+        /*for (box in boxes) {
             if (box.mass == 0f) continue
 
             val handle = box.physicsHandle as Long
@@ -117,7 +117,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
             box.angularVelocity.x = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 0]
             box.angularVelocity.y = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 1]
             box.angularVelocity.z = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 2]
-        }
+        }*/
 
         lastSimulationMillis = (System.currentTimeMillis() - start).toFloat()
     }

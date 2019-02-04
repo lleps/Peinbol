@@ -59,4 +59,7 @@ class Box(
     var shouldCommitMomentumChanges: Boolean = true // always commit on first simulation
     var physicsHandle: Any? = null
 
+    // Renderer metadata
+    var rendererHandle: Any? = null
+
 }
