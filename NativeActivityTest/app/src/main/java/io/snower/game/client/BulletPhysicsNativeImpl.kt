@@ -8,28 +8,24 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
     // Native physics functions.
     external fun createWorld(): Long
     external fun deleteWorld(handle: Long)
-    external fun createBodyInWorld(worldHandle: Long/*all the flags, inertia? this? that? etc*/): Long
+    external fun createBodyInWorld(
+        worldHandle: Long,
+        mass: Float,
+        x: Float, y: Float, z: Float,
+        sx: Float, sy: Float, sz: Float
+    ): Long
     external fun deleteBodyFromWorld(worldHandle: Long, bodyHandle: Long)
-    external fun simulate(time: Float)
+    external fun simulate(worldHandle: Long, time: Float)
     external fun getBodyOpenGLMatrix(bodyHandle: Long, dst: FloatArray)
     external fun getBodyHandleData(bodyHandle: Long, dst: FloatArray) // to update box data with simulation data
     external fun updateBodyWorldTransform(
         bodyHandle: Long,
-        x: Float,
-        y: Float,
-        z: Float,
-        q1: Float,
-        q2: Float,
-        q3: Float,
-        q4: Float)
+        x: Float, y: Float, z: Float,
+        q1: Float, q2: Float, q3: Float, q4: Float)
     external fun updateBodyVelocity(
         bodyHandle: Long,
-        linearX: Float,
-        linearY: Float,
-        linearZ: Float,
-        angularX: Float,
-        angularY: Float,
-        angularZ: Float)
+        linearX: Float, linearY: Float, linearZ: Float,
+        angularX: Float, angularY: Float, angularZ: Float)
 
     private val boxes = mutableSetOf<Box>()
     private var worldHandle: Long = 0L
@@ -48,7 +44,9 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
 
     override fun register(box: Box) {
         if (box !in boxes) {
-            val bodyHandle = createBodyInWorld(worldHandle)
+            val (x, y, z) = box.position
+            val (sx, sy, sz) = box.size
+            val bodyHandle = createBodyInWorld(worldHandle, box.mass, x, y, z, sx, sy, sz)
             box.physicsHandle = bodyHandle
             boxes += box
         }
@@ -90,7 +88,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
         }
 
         // Simulate
-        simulate(delta.toFloat()/1000f)
+        simulate(worldHandle, delta.toFloat()/1000f)
 
         // Poll simulation results back to java
         for (box in boxes) {

@@ -55,8 +55,8 @@ class Box(
         }
 
     // Physics metadata
-    var shouldCommitTransformChanges: Boolean = false
-    var shouldCommitMomentumChanges: Boolean = false
+    var shouldCommitTransformChanges: Boolean = true // always commit on first simulation
+    var shouldCommitMomentumChanges: Boolean = true // always commit on first simulation
     var physicsHandle: Any? = null
 
 }
