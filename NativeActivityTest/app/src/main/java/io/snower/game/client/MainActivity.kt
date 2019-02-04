@@ -102,6 +102,8 @@ class MainActivity : AppCompatActivity() {
             window = Window(assetResolver)
             window.init()
             println("Everything initialized!")
+
+            PhysicsImpl()
         }
     }
 
