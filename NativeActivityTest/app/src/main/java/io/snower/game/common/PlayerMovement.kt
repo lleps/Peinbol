@@ -18,7 +18,6 @@ fun doPlayerMovement(box: Box, inputState: Messages.InputState, delta: Int) {
         if (inputState.right) velVector -= vectorFront(inputState.cameraY + 90f, 0f, force * deltaSec)
         if (inputState.left) velVector -= vectorFront(inputState.cameraY - 90f, 0f, force * deltaSec)
         if (velVector.length() > 0.001) {
-            box.rigidBody!!.activate()
             val finalVel = box.linearVelocity + velVector
             if (finalVel.length() > limit) {
                 finalVel.normalize()

@@ -1,10 +1,6 @@
 package io.snower.game.common
 
-import com.bulletphysics.dynamics.RigidBody
-import com.bulletphysics.linearmath.DefaultMotionState
-import com.bulletphysics.linearmath.Transform
 import javax.vecmath.Color4f
-import javax.vecmath.Matrix4f
 import javax.vecmath.Quat4f
 import javax.vecmath.Vector3f
 
@@ -26,58 +22,41 @@ class Box(
     val isCharacter: Boolean = false,
     var shouldTransmit: Boolean = true // certain objects may be transmitted only once, to save cpu (i.e balls)
 ) {
-    var physicsHandle: Any? = null // used to attach implementation-dependent metadata by physics simulation
+
+    fun applyForce(force: Vector3f) {
+        val forceCopy = force.get()
+        forceCopy.scale(1f / mass)
+        linearVelocity.add(forceCopy)
+        shouldCommitTransformChanges = true
+    }
 
     var position: Vector3f = position
         set(value) {
-            if (!syncing) {
-                val body = rigidBody!!
-                val transform = Transform()
-                val rotation = Quat4f()
-                body.motionState.getWorldTransform(transform).getRotation(rotation)
-                body.motionState = DefaultMotionState(Transform(Matrix4f(rotation.get(), value.get(), 1f)))
-            }
+            shouldCommitTransformChanges = true
+            field = value.get()
+        }
+
+    var rotation: Quat4f = rotation
+        set(value) {
+            shouldCommitTransformChanges = true
             field = value.get()
         }
 
     var linearVelocity: Vector3f = linearVelocity
         set(value) {
-            if (!syncing) {
-                val body = rigidBody!!
-                if (value.length() > 0.001) body.activate()
-                body.setLinearVelocity(value.get())
-            }
+            shouldCommitTransformChanges = true
             field = value.get()
         }
 
     var angularVelocity: Vector3f = angularVelocity
         set(value) {
-            if (!syncing) {
-                val body = rigidBody!!
-                if (value.length() > 0.001) body.activate()
-                body.setAngularVelocity(value.get())
-            }
+            shouldCommitTransformChanges = true
             field = value.get()
         }
 
-    var syncing = false
+    // Physics metadata
+    var shouldCommitTransformChanges: Boolean = false
+    var shouldCommitMomentumChanges: Boolean = false
+    var physicsHandle: Any? = null
 
-    var rotation: Quat4f = rotation
-        set(value) {
-            if (!syncing) {
-                val body = rigidBody!!
-                val transform = Transform()
-                val origin = body.motionState.getWorldTransform(transform).origin
-                body.motionState = DefaultMotionState(Transform(Matrix4f(value.get(), origin.get(), 1f)))
-            }
-            field = value.get()
-        }
-
-    /** Reference to bullet physics body. Read by Window to get rotation, and set by Physics.register. */
-    var rigidBody: RigidBody? = null
-
-    fun applyForce(force: Vector3f) {
-        rigidBody!!.activate()
-        rigidBody!!.applyCentralImpulse(force)
-    }
 }

@@ -1,77 +1,138 @@
 package io.snower.game.client
 
-import io.snower.game.common.Box
-import io.snower.game.common.PhysicsInterface
+import io.snower.game.common.*
 
 /** Implements physics with bullet 2.x using JNI mostly. */
 class BulletPhysicsNativeImpl : PhysicsInterface {
 
-    // so, the idea is pretty much ok.
-    // now, need to implement the actual jni capabilities.
-
-    // offsets for getBodyHandleData
-    private val POSITION_OFFSET = 0
-    private val ROTATION_QUATERNION_OFFSET = 3
-    private val LINEAR_VELOCITY_OFFSET = 7
-    private val ANGULAR_VELOCITY_OFFSET = 10
-    private val BODY_DATA_SIZE = 13
-
-    // interfaces prototyping for bullet 2.x
-    external fun createBody(/*all the flags, inertia? this? that? etc*/): Int
-    external fun destroyBody(bodyHandle: Int)
+    // Native physics functions.
+    external fun createWorld(): Long
+    external fun deleteWorld(handle: Long)
+    external fun createBodyInWorld(worldHandle: Long/*all the flags, inertia? this? that? etc*/): Long
+    external fun deleteBodyFromWorld(worldHandle: Long, bodyHandle: Long)
     external fun simulate(time: Float)
-    external fun readOpenGLMatrix(bodyHandle: Int, dst: FloatArray)
-    external fun getBodyHandleData(bodyHandle: Int, dst: FloatArray) // to update local data with simulation.
-    external fun applyForce(handle: Int, x: Float, y: Float, z: Float)
-
+    external fun getBodyOpenGLMatrix(bodyHandle: Long, dst: FloatArray)
+    external fun getBodyHandleData(bodyHandle: Long, dst: FloatArray) // to update box data with simulation data
     external fun updateBodyWorldTransform(
-        handle: Int, x: Float, y: Float, z: Float, q1: Float, q2: Float, q3: Float, q4: Float
-    )
-
+        bodyHandle: Long,
+        x: Float,
+        y: Float,
+        z: Float,
+        q1: Float,
+        q2: Float,
+        q3: Float,
+        q4: Float)
     external fun updateBodyVelocity(
-        handle: Int, linearX: Float, linearY: Float, linearZ: Float, angularX: Float, angularY: Float, angularZ: Float
-    )
+        bodyHandle: Long,
+        linearX: Float,
+        linearY: Float,
+        linearZ: Float,
+        angularX: Float,
+        angularY: Float,
+        angularZ: Float)
 
     private val boxes = mutableSetOf<Box>()
+    private var worldHandle: Long = 0L
+    private val bodyDataDst = FloatArray(BODY_DATA_SIZE) // tmp, to read simulation data for each box
+
+    fun init() {
+        check(worldHandle == 0L) { "worldHandle already initialized (is $worldHandle)"}
+        worldHandle = createWorld()
+    }
+
+    fun destroy() {
+        check(worldHandle != 0L) { "worldHandle not initialized (is $worldHandle)"}
+        deleteWorld(worldHandle)
+        boxes.clear()
+    }
 
     override fun register(box: Box) {
-        boxes += box
+        if (box !in boxes) {
+            val bodyHandle = createBodyInWorld(worldHandle)
+            box.physicsHandle = bodyHandle
+            boxes += box
+        }
     }
 
     override fun unRegister(box: Box) {
-        boxes += box
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        if (box in boxes) {
+            val bodyHandle = box.physicsHandle as Long
+            deleteBodyFromWorld(worldHandle, bodyHandle)
+            boxes -= box
+        }
     }
 
     override fun getBoxOpenGLMatrix(box: Box, dst: FloatArray) {
         // this must be done natively.
-
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val handle = box.physicsHandle as Long
+        getBodyOpenGLMatrix(handle, dst)
     }
-
-    private val bodyDataDst = FloatArray(BODY_DATA_SIZE)
 
     override fun simulate(delta: Int, updateObjs: Boolean, updateId: Int) {
         val start = System.currentTimeMillis()
-        simulate(delta.toFloat()/1000f)
+
+        // Commit changes to the engine, if any.
         for (box in boxes) {
-            // TODO: Generates too much garbage dud. must do something about that.
-            val handle = box.physicsHandle as Int
-            // may only be applied to those with mass != 0f
+            if (box.shouldCommitTransformChanges) {
+                val handle = box.physicsHandle as Long
+                val (x, y, z) = box.position
+                val (rX, rY, rZ, rW) = box.rotation
+                updateBodyWorldTransform(handle, x, y, z, rX, rY, rZ, rW)
+                box.shouldCommitTransformChanges = false
+            }
+            if (box.shouldCommitMomentumChanges) {
+                val handle = box.physicsHandle as Long
+                val (lX, lY, lZ) = box.linearVelocity
+                val (aX, aY, aZ) = box.angularVelocity
+                updateBodyVelocity(handle, lX, lY, lZ, aX, aY, aZ)
+                box.shouldCommitMomentumChanges = false
+            }
+        }
+
+        // Simulate
+        simulate(delta.toFloat()/1000f)
+
+        // Poll simulation results back to java
+        for (box in boxes) {
+            if (box.mass == 0f) continue
+
+            val handle = box.physicsHandle as Long
             getBodyHandleData(handle, bodyDataDst)
+
+            // update position
             box.position.x = bodyDataDst[POSITION_OFFSET + 0]
             box.position.y = bodyDataDst[POSITION_OFFSET + 1]
             box.position.z = bodyDataDst[POSITION_OFFSET + 2]
-            // etc...
+
+            // update quaternion
+            box.position.x = bodyDataDst[QUATERNION_OFFSET + 0]
+            box.position.y = bodyDataDst[QUATERNION_OFFSET + 1]
+            box.position.z = bodyDataDst[QUATERNION_OFFSET + 2]
+            box.rotation.w = bodyDataDst[QUATERNION_OFFSET + 3]
+
+            // update velocity
+            box.linearVelocity.x = bodyDataDst[LINEAR_VELOCITY_OFFSET + 0]
+            box.linearVelocity.y = bodyDataDst[LINEAR_VELOCITY_OFFSET + 1]
+            box.linearVelocity.z = bodyDataDst[LINEAR_VELOCITY_OFFSET + 2]
+
+            // update angular velocity
+            box.angularVelocity.x = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 0]
+            box.angularVelocity.y = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 1]
+            box.angularVelocity.z = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 2]
         }
+
         lastSimulationMillis = (System.currentTimeMillis() - start).toFloat()
     }
 
     override var lastSimulationMillis: Float = 0f
         private set
 
-    // 2.x or the C api?
-    // need to...
-    //  setup a single native function through the ndk.
-    //  compile the ndk
+    companion object {
+        // offsets for getBodyHandleData
+        private const val POSITION_OFFSET = 0
+        private const val QUATERNION_OFFSET = 3
+        private const val LINEAR_VELOCITY_OFFSET = 7
+        private const val ANGULAR_VELOCITY_OFFSET = 10
+        private const val BODY_DATA_SIZE = 13
+    }
 }

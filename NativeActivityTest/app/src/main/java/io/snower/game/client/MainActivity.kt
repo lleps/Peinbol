@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
             println("ok.")
 
             println("Setup physics...")
-            physics = Physics(Physics.Mode.CLIENT).apply { init() }
+            physics = BulletPhysicsNativeImpl().apply { init() }
             println("ok.")
 
             assetResolver = AndroidAssetResolver(assets)
@@ -102,8 +102,6 @@ class MainActivity : AppCompatActivity() {
             window = Window(assetResolver)
             window.init()
             println("Everything initialized!")
-
-            PhysicsImpl()
         }
     }
 
