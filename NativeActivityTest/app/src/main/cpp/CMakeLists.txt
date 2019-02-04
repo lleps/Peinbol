@@ -15,6 +15,7 @@ add_library( # Sets the name of the library.
 
 		# Provides a relative path to your source file(s).
 		native-lib.cpp
+        JNI_PhysicsImpl.cpp
         "bullet/btBulletCollisionAll.cpp"
         "bullet/btBulletDynamicsAll.cpp"
         "bullet/btLinearMathAll.cpp")

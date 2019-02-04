@@ -1,4 +1,4 @@
-package com.example.nativeactivitytest
+package io.snower.game.client
 
 import android.opengl.GLSurfaceView
 import android.support.v7.app.AppCompatActivity
@@ -6,6 +6,7 @@ import android.os.Bundle
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
+/** Entry point for the app. Initializes high-level modules and synchronizes them. */
 class MainActivity : AppCompatActivity() {
 
     private var renderer: GLSurfaceView.Renderer? = null
@@ -30,6 +31,8 @@ class MainActivity : AppCompatActivity() {
 
         surface.setRenderer(renderer!!)
         setContentView(surface)
+
+        PhysicsImpl()
     }
 
     external fun init(width: Int, height: Int)
