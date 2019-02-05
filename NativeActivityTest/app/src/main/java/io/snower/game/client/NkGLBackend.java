@@ -4,13 +4,6 @@
  */
 package io.snower.game.client;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.util.*;
-
 
 /**
  * Implements nuklear using GLFW and OpenGL.
@@ -39,10 +32,10 @@ public class NkGLBackend {
                 .flip();
     }
 
-    private final List<NkUIDrawable> drawables = new ArrayList<>();
+    private final List<UIDrawable> drawables = new ArrayList<>();
 
     // an extra collection to allow to unregister drawables while drawing
-    private final Collection<NkUIDrawable> drawablesToRemove = new HashSet<>();
+    private final Collection<UIDrawable> drawablesToRemove = new HashSet<>();
 
     private final ByteBuffer ttf;
 
@@ -76,11 +69,11 @@ public class NkGLBackend {
         }*/
     }
 
-    public void addDrawable(NkUIDrawable drawable) {
+    public void addDrawable(UIDrawable drawable) {
         //drawables.add(drawable);
     }
 
-    public void removeDrawable(NkUIDrawable drawable) {
+    public void removeDrawable(UIDrawable drawable) {
         //drawablesToRemove.add(drawable);
     }
 
@@ -94,9 +87,9 @@ public class NkGLBackend {
             glfwGetWindowSize(win, width, height);
             glViewport(0, 0, width.get(0), height.get(0));
 
-            Iterator<NkUIDrawable> iterator = drawables.iterator();
+            Iterator<UIDrawable> iterator = drawables.iterator();
             while (iterator.hasNext()) {
-                NkUIDrawable next = iterator.next();
+                UIDrawable next = iterator.next();
                 if (drawablesToRemove.contains(next)) {
                     iterator.remove();
                     drawablesToRemove.remove(next);

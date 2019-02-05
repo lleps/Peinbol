@@ -2,8 +2,7 @@ package io.snower.game.client
 
 
 /** To shot latency, fps, etc. For devs. */
-class PlayersInfoUI
-: NkUIDrawable {
+class PlayersInfoUI : UIDrawable {
 
     /*val players = listOf(
         "pepito",
@@ -23,10 +22,10 @@ class PlayersInfoUI
     */
     var visible = false
 
-    override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
         /*nkBeginTransparentWindow(
-            ctx,
+            drawer,
             "Players info",
                 (screenWidth / 2f) - (windowWidth / 2f),
                 (screenHeight / 2f) - (windowHeight / 2f),
@@ -35,14 +34,14 @@ class PlayersInfoUI
                 BLACK_TRANSPARENT
         ) {
             for (player in players) {
-                nk_layout_row_dynamic(ctx, 20f, 3)
-                nk_label(ctx,
+                nk_layout_row_dynamic(drawer, 20f, 3)
+                nk_label(drawer,
                     player, NK_TEXT_ALIGN_LEFT
                 )
-                nk_label(ctx,
+                nk_label(drawer,
                     "55", NK_TEXT_ALIGN_CENTERED
                 )
-                nk_label(ctx,
+                nk_label(drawer,
                     "102 ms", NK_TEXT_ALIGN_RIGHT
                 )
             }

@@ -1,19 +1,17 @@
 package io.snower.game.client
 
-import javax.vecmath.Vector3f
-
 /**
  * Draws the crosshair on the middle of the screen.
  * Crosshair size depends on the given velocity.
  */
-class HealthUI : NkUIDrawable {
+class HealthUI : UIDrawable {
 
     //private val progressPtr = BufferUtils.createPointerBuffer(1).put(0, 220)
 
     var health: Int = 100
     var visible = true
 
-    override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
         /*MemoryStack.stackPush().use { stack ->
             val crosshairCenterColor = NkColor.callocStack(stack).set(0xC6.toByte(), 0x28.toByte(), 0x28.toByte(), 0xFF.toByte())
@@ -21,14 +19,14 @@ class HealthUI : NkUIDrawable {
             val col2 = NkColor.callocStack(stack).set(0x63.toByte(), 0xFF.toByte(), 0x99.toByte(), 0xFF.toByte())
             val barWidth = 400f
             val barHeight = 30f
-            nkBeginTransparentWindow(ctx, "health", (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f, barWidth, barHeight+10) {
-                nk_layout_row_dynamic(ctx, barHeight, 1)
+            nkBeginTransparentWindow(drawer, "health", (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f, barWidth, barHeight+10) {
+                nk_layout_row_dynamic(drawer, barHeight, 1)
                 progressPtr.clear().put(0, health.toLong())
-                //ctx.style().progress().active().data().color().set(crosshairCenterColor)
-                //ctx.style().progress().cursor_active().data().color().set(crosshairCenterColor)
-                ctx.style().progress().cursor_normal().data().color().set(crosshairCenterColor)
-                ctx.style().progress().normal().data().color(BLACK_TRANSPARENT)
-                nk_progress(ctx, progressPtr, 100, false)
+                //drawer.style().progress().active().data().color().set(crosshairCenterColor)
+                //drawer.style().progress().cursor_active().data().color().set(crosshairCenterColor)
+                drawer.style().progress().cursor_normal().data().color().set(crosshairCenterColor)
+                drawer.style().progress().normal().data().color(BLACK_TRANSPARENT)
+                nk_progress(drawer, progressPtr, 100, false)
             }
         }*/
     }

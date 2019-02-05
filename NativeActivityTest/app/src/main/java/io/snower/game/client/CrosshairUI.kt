@@ -6,7 +6,7 @@ import javax.vecmath.Vector3f
  * Draws the crosshair on the middle of the screen.
  * Crosshair size depends on the given velocity.
  */
-class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
+class CrosshairUI(val velocitySupplier: () -> Vector3f) : UIDrawable {
 
     /*companion object {
         private const val CROSSHAIR_MIN_RADIUS = 30f
@@ -15,7 +15,7 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
 
     var visible = true
 
-    override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
         /*MemoryStack.stackPush().use { stack ->
             val crosshairRingColor = NkColor.callocStack(stack).set(0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte(), 0xE0.toByte())
@@ -25,10 +25,10 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : NkUIDrawable {
             radius = radius.coerceAtMost(CROSSHAIR_MAX_RADIUS)
             val screenCenterX = (screenWidth / 2f)
             val screenCenterY = (screenHeight / 2f)
-            nkBeginTransparentWindow(ctx, "crosshair", screenCenterX-200f, screenCenterY-200f, 400f, 400f) {
-                nk_layout_row_static(ctx, 400f, 400, 1) // alloc some space to draw
-                nkDrawCircle(ctx, screenCenterX, screenCenterY, radius, 4f, crosshairRingColor)
-                nkDrawCircle(ctx, screenCenterX, screenCenterY, 1f, 3f, crosshairCenterColor)
+            nkBeginTransparentWindow(drawer, "crosshair", screenCenterX-200f, screenCenterY-200f, 400f, 400f) {
+                nk_layout_row_static(drawer, 400f, 400, 1) // alloc some space to draw
+                nkDrawCircle(drawer, screenCenterX, screenCenterY, radius, 4f, crosshairRingColor)
+                nkDrawCircle(drawer, screenCenterX, screenCenterY, 1f, 3f, crosshairCenterColor)
             }
         }*/
     }

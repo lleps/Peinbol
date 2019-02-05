@@ -1,8 +1,6 @@
 package io.snower.game.client
 
-class NkContext
-
-class ChatUI : NkUIDrawable {
+class ChatUI : UIDrawable {
     /*companion object {
         private val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
         private const val WIDTH_PER_CHARACTER = 8.25f
@@ -19,7 +17,7 @@ class ChatUI : NkUIDrawable {
 
     var visible = true
 
-    override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         /*if (!visible) return
         messages = messages.filter { System.currentTimeMillis() - it.timeOfCreation < MSG_EXPIRY_MILLIS }
         val longestMsg = messages.maxBy { it.msg.length }?.msg?.length ?: 1
@@ -28,10 +26,10 @@ class ChatUI : NkUIDrawable {
         val x = screenWidth - width - padding
         val y = padding
         val height = messages.size * 24f
-        nkBeginTransparentWindow(ctx, "Chat", x, y, width, height, background = BLACK_TRANSPARENT) {
+        nkBeginTransparentWindow(drawer, "Chat", x, y, width, height, background = BLACK_TRANSPARENT) {
             for (msg in messages) {
-                nk_layout_row_dynamic(ctx, 20f, 1)
-                nk_label(ctx, msg.msg, NK_TEXT_RIGHT)
+                nk_layout_row_dynamic(drawer, 20f, 1)
+                nk_label(drawer, msg.msg, NK_TEXT_RIGHT)
             }
         }*/
     }

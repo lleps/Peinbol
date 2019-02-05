@@ -8,28 +8,28 @@ class ClientStatsUI(
     private val window: Window,
     private val physics: PhysicsInterface,
     private val network: Network.Client
-) : NkUIDrawable {
+) : UIDrawable {
 
     //private val BLACK_TRANSPARENT = Nuklear.nk_rgba(0, 0, 0, 100, NkColor.callocStack())
 
     var visible = true
 
-    override fun draw(ctx: NkContext, screenWidth: Float, screenHeight: Float) {
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         /*if (!visible) return
         val statCount = 3 // cpu+net fps 60  phys xms   draw xms |  ping 50ms  out 25kb/s  in 25/s   mem used/alloc/Max
         nkBeginTransparentWindow(
-            ctx,
+            drawer,
             "Stats",
             20f, 20f, 300f, statCount*25f,
             background = BLACK_TRANSPARENT
         ) {
-            nk_layout_row_dynamic(ctx, 20f, 1)
-            nk_label(ctx,
+            nk_layout_row_dynamic(drawer, 20f, 1)
+            nk_label(drawer,
                 "fps %d  physics %.1fms  draw %.1fms".format(window.fps, physics.lastSimulationMillis, window.lastDrawMillis),
                 NK_TEXT_LEFT
             )
-            nk_layout_row_dynamic(ctx, 20f, 1)
-            nk_label(ctx,
+            nk_layout_row_dynamic(drawer, 20f, 1)
+            nk_label(drawer,
                 "lat %dms  in %.1fKB/s  out %.1fKB/s  pps %d"
                     .format(
                         network.latency,
@@ -44,8 +44,8 @@ class ClientStatsUI(
             val allocatedMemoryMb = runtime.totalMemory() / 1024.0 / 1024.0
             val freeMemoryMb = runtime.freeMemory() / 1024.0 / 1024.0
             val usedMemoryMb = allocatedMemoryMb - freeMemoryMb
-            nk_layout_row_dynamic(ctx, 20f, 1)
-            nk_label(ctx,
+            nk_layout_row_dynamic(drawer, 20f, 1)
+            nk_label(drawer,
                 "mem %.1fM  alloc %.1fM  max %.1fM".format(usedMemoryMb, allocatedMemoryMb, maxMemoryMb),
                 NK_TEXT_LEFT
             )
