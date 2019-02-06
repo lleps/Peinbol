@@ -24,38 +24,6 @@ class Window(
     var lastDrawMillis: Float = 0f
         private set
 
-    private var window: Long = 0
-    private val uiDrawer = NkGLBackend()
-    private val uiDrawables = hashMapOf<Class<out UIDrawable>, UIDrawable>()
-
-    /** Register a drawable instance for the given class. Throws an exception if
-     * other drawable is already registered for the class.
-     */
-    fun <T : UIDrawable> registerUIElement(clazz: Class<T>, drawable: T) {
-        check(clazz !in uiDrawables) { "class $clazz already has a drawable registered. Remove it first." }
-        uiDrawables[clazz] = drawable
-        uiDrawer.addDrawable(drawable)
-    }
-
-    /** Get the drawable instance for the class, or null if it isn't registered. */
-    @Suppress("UNCHECKED_CAST")
-    fun <T : UIDrawable> getUIElement(clazz: Class<T>): T? {
-        return uiDrawables[clazz] as T?
-    }
-
-    /** Remove the drawable. Thows an exception if no drawable for [clazz] is registered. */
-    fun <T : UIDrawable> unregisterUIElement(clazz: Class<T>) {
-        check(clazz in uiDrawables) { "class $clazz doesn't have a drawable registered." }
-        if (clazz in uiDrawables) {
-            val drawable = uiDrawables[clazz]!!
-            uiDrawables -= clazz
-            uiDrawer.removeDrawable(drawable)
-        }
-    }
-
-    fun init() {
-        uiDrawer.init(window)
-    }
 
     private var fpsCount: Long = 0
     private var countFpsExpiry = System.currentTimeMillis() + 1000
@@ -63,7 +31,6 @@ class Window(
     fun draw() {
         // Draw world & UI
         val start = System.nanoTime()
-        uiDrawer.draw(window)
         lastDrawMillis = (System.nanoTime() - start) / 1000000f
 
         // Stats

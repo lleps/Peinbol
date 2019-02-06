@@ -26,12 +26,13 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "snower"
     }
 
-    private var glSurfaceView: GLSurfaceView? = null
+    private var surface: GLSurfaceView? = null
     private lateinit var physics: PhysicsInterface
     private lateinit var window: Window
     private lateinit var network: Network.Client
     private lateinit var audioManager: AudioManager
     private lateinit var worldRenderer: WorldRenderer
+    private lateinit var uiRenderer: UIRenderer
     private lateinit var assetResolver: AssetResolver
 
     // player state
@@ -45,10 +46,10 @@ class MainActivity : AppCompatActivity() {
         val configurationInfo = activityManager.deviceConfigurationInfo
         val supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000
         if (supportsEs2) {
-            glSurfaceView = GLSurfaceView(this)
-            glSurfaceView!!.setEGLContextClientVersion(2)
-            glSurfaceView!!.setRenderer(RendererWrapper())
-            setContentView(glSurfaceView)
+            surface = GLSurfaceView(this)
+            surface!!.setEGLContextClientVersion(2)
+            surface!!.setRenderer(RendererWrapper())
+            setContentView(surface)
         } else {
             error("This device doesn't support OpenGL ES 2.0")
         }
@@ -59,13 +60,15 @@ class MainActivity : AppCompatActivity() {
             network.pollMessages()
             update(window, window.mouseDeltaX, window.mouseDeltaY, 16)
             val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
-            val drawTime = measureTimeMillis { worldRenderer.draw() }
-            Log.i(TAG, "Physics time: $physicsTime, draw time: $drawTime")
+            val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
+            val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
+            Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
             Log.i(TAG, "Change resolution to $width x $height")
             worldRenderer.setResolution(width, height)
+            uiRenderer.setResolution(width, height)
         }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -98,21 +101,31 @@ class MainActivity : AppCompatActivity() {
             println("Initializing renderer...")
             worldRenderer.init()
 
+            uiRenderer = NuklearUIRenderer()
+            uiRenderer.init()
+            uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
+            uiRenderer.registerUIElement(HealthUI::class.java, HealthUI())
+            uiRenderer.registerUIElement(CrosshairUI::class.java, CrosshairUI {
+                val box = boxes[myBoxId]
+                box?.linearVelocity ?: Vector3f()
+            })
+            uiRenderer.registerUIElement(ChatUI::class.java, ChatUI())
+            uiRenderer.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
+
             println("Initialize window...")
             window = Window(assetResolver)
-            window.init()
             println("Everything initialized!")
         }
     }
 
     override fun onResume() {
         super.onResume()
-        glSurfaceView!!.onResume()
+        surface!!.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        glSurfaceView!!.onPause()
+        surface!!.onPause()
     }
 
 
@@ -176,7 +189,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             is Messages.SetHealth -> {
-                window.getUIElement(HealthUI::class.java)!!.health = msg.health
+                uiRenderer.getUIElement(HealthUI::class.java)!!.health = msg.health
             }
             is Messages.NotifyHit -> {
                 val victimBox = boxes[msg.victimBoxId]
@@ -200,7 +213,7 @@ class MainActivity : AppCompatActivity() {
             }
             is Messages.ServerMessage -> {
                 println(msg.message)
-                //window.getUIElement(ChatUI::class.java)!!.addMessage(msg.message)
+                uiRenderer.getUIElement(ChatUI::class.java)!!.addMessage(msg.message)
             }
         }
     }
