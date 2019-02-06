@@ -10,8 +10,8 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : UIDrawable {
     companion object {
         private const val CROSSHAIR_MIN_RADIUS = 30f
         private const val CROSSHAIR_MAX_RADIUS = 60f
-        private const val CROSSHAIR_RING_COLOR = 0xFFFFF00
-        private const val CROSSHAIR_CENTER_COLOR = 0xFFFFF
+        private const val CROSSHAIR_RING_COLOR = 0xE0E0E0E0.toInt()
+        private const val CROSSHAIR_CENTER_COLOR = 0x662828FF.toInt()
     }
 
     var visible = true
