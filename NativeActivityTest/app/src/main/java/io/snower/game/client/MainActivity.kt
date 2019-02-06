@@ -101,8 +101,14 @@ class MainActivity : AppCompatActivity() {
             println("Initializing renderer...")
             worldRenderer.init()
 
+            println("Initialize UI...")
             uiRenderer = NuklearUIRenderer()
             uiRenderer.init()
+
+            println("Initialize window...")
+            window = Window(assetResolver)
+
+            println("register UI elements...")
             uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
             uiRenderer.registerUIElement(HealthUI::class.java, HealthUI())
             uiRenderer.registerUIElement(CrosshairUI::class.java, CrosshairUI {
@@ -112,8 +118,6 @@ class MainActivity : AppCompatActivity() {
             uiRenderer.registerUIElement(ChatUI::class.java, ChatUI())
             uiRenderer.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
 
-            println("Initialize window...")
-            window = Window(assetResolver)
             println("Everything initialized!")
         }
     }

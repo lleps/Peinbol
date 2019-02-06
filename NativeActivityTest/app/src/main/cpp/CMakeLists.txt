@@ -5,7 +5,8 @@ add_library(
         native-lib
 		SHARED
 		native-lib.cpp
-        JNI_PhysicsImpl.cpp)
+        JNI_PhysicsImpl.cpp
+		JNI_NuklearUIRenderer.cpp)
 
 # Add bullet physics dependency
 add_library(Bullet
