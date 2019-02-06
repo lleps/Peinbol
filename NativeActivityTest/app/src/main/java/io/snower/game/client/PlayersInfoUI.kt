@@ -22,19 +22,19 @@ class PlayersInfoUI : UIDrawable {
 
     override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
-        drawer.begin(
+        if (drawer.begin(
             "Players info",
                 (screenWidth / 2f) - (windowWidth / 2f),
                 (screenHeight / 2f) - (windowHeight / 2f),
                 windowWidth, windowHeight,
                 drawer.WINDOW_TITLE or drawer.WINDOW_NO_SCROLLBAR,
-                BLACK_TRANSPARENT
-        )
-        for (player in players) {
-            drawer.layoutRowDynamic(20f, 3)
-            drawer.label(player, drawer.TEXT_LEFT)
-            drawer.label("55", drawer.TEXT_CENTER)
-            drawer.label("102 ms", drawer.TEXT_RIGHT)
+                BLACK_TRANSPARENT)) {
+            for (player in players) {
+                drawer.layoutRowDynamic(20f, 3)
+                drawer.label(player, drawer.TEXT_LEFT)
+                drawer.label("55", drawer.TEXT_CENTER)
+                drawer.label("102 ms", drawer.TEXT_RIGHT)
+            }
         }
         drawer.end()
     }

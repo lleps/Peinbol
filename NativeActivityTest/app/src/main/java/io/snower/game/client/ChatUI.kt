@@ -26,10 +26,11 @@ class ChatUI : UIDrawable {
         val x = screenWidth - width - padding
         val y = padding
         val height = messages.size * 24f
-        drawer.begin("Chat", x, y, width, height, background = BLACK_TRANSPARENT)
-        for (msg in messages) {
-            drawer.layoutRowDynamic(20f, 1)
-            drawer.label(msg.msg, drawer.TEXT_RIGHT)
+        if (drawer.begin("Chat", x, y, width, height, background = BLACK_TRANSPARENT)) {
+            for (msg in messages) {
+                drawer.layoutRowDynamic(20f, 1)
+                drawer.label(msg.msg, drawer.TEXT_RIGHT)
+            }
         }
         drawer.end()
     }

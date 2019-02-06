@@ -27,6 +27,12 @@ class NuklearUIRenderer : UIRenderer {
         this.height = height
     }
 
+    // Now implement this using JNI.
+    // first, completely ignore input. Just nuklear output.
+    // Must have methods to, draw everything in UIDrawer (this may implement the interface natively)
+    // And, methods to draw to openGL nuklear output
+
+
     override fun init() {
     }
 
