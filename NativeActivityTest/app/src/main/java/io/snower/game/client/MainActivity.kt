@@ -1,11 +1,14 @@
 package io.snower.game.client
 
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.opengl.GLSurfaceView
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import io.snower.game.common.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -15,7 +18,7 @@ import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
 
 /** Entry point for the app. Initializes high-level modules and synchronizes them. */
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
     companion object {
 
@@ -42,6 +45,10 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        this.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val configurationInfo = activityManager.deviceConfigurationInfo
         val supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000
