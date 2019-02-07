@@ -19,7 +19,9 @@ class ClientStatsUI(
     override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return
         val statCount = 3 // cpu+net fps 60  phys xms   draw xms |  ping 50ms  out 25kb/s  in 25/s   mem used/alloc/Max
-        if (drawer.begin("Stats", 20f, 20f, 300f, statCount*25f, background = BLACK_TRANSPARENT)) {
+        if (drawer.begin("Stats", 20f, 20f, 300f, statCount*25f,
+                background = BLACK_TRANSPARENT,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
             drawer.layoutRowDynamic(20f, 1)
             drawer.label(
                 "fps %d  physics %.1fms  draw %.1fms".format(window.fps, physics.lastSimulationMillis, window.lastDrawMillis),

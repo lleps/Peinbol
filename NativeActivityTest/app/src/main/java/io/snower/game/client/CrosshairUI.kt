@@ -23,7 +23,11 @@ class CrosshairUI(val velocitySupplier: () -> Vector3f) : UIDrawable {
         radius = radius.coerceAtMost(CROSSHAIR_MAX_RADIUS)
         val screenCenterX = (screenWidth / 2f)
         val screenCenterY = (screenHeight / 2f)
-        if (drawer.begin("crosshair", screenCenterX-200f, screenCenterY-200f, 400f, 400f)) {
+        if (drawer.begin("crosshair",
+                screenCenterX-200f, screenCenterY-200f,
+                400f, 400f,
+                background = 0x0,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
             drawer.layoutRowStatic(400f, 400f, 1) // alloc some space to draw
             drawCircle(drawer, screenCenterX, screenCenterY, radius, 4f, CROSSHAIR_RING_COLOR)
             drawCircle(drawer, screenCenterX, screenCenterY, 1f, 3f, CROSSHAIR_CENTER_COLOR)

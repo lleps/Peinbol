@@ -71,9 +71,10 @@ class NuklearUIRenderer : UIRenderer, UIDrawer {
 
     // Constants
     // Hardcoded to avoid generating a damn method for each one
-    override val WINDOW_TITLE: Int get() = 0
-    override val WINDOW_NO_SCROLLBAR: Int get() = 0
-    override val TEXT_LEFT: Int get() = 0
-    override val TEXT_CENTER: Int get() = 0
-    override val TEXT_RIGHT: Int get() = 0
+    private fun nkFlag(flag: Int) = 1 shl flag
+    override val WINDOW_TITLE: Int get() = nkFlag(6)
+    override val WINDOW_NO_SCROLLBAR: Int get() = nkFlag(5)
+    override val TEXT_LEFT: Int get() = 0x01
+    override val TEXT_CENTER: Int get() = 0x02
+    override val TEXT_RIGHT: Int get() = 0x04
 }

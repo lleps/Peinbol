@@ -11,7 +11,12 @@ class HealthUI : UIDrawable {
         if (!visible) return
         val barWidth = 400f
         val barHeight = 30f
-        if (drawer.begin("health", (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f, barWidth, barHeight+10)) {
+        if (drawer.begin("health",
+                (screenWidth / 2f) - (barWidth / 2f), screenHeight - 50f,
+                barWidth, barHeight+10,
+                background = 0x0,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
+            drawer.layoutRowDynamic(barHeight, 1)
             drawer.progress(health, 100, HEALTH_COLOR, HEALTH_BACKGROUND)
         }
         drawer.end()

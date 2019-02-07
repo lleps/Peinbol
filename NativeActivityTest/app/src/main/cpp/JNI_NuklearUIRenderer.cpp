@@ -59,6 +59,10 @@ void renderStandardExample(int width, int height) {
         if (nk_option_label(ctx, "hard", op == HARD)) op = HARD;
         nk_layout_row_dynamic(ctx, 25, 1);
         nk_property_int(ctx, "Compression:", 0, &property, 100, 10, 1);
+        nk_layout_row_dynamic(ctx, 25, 1);
+        size_t prog = 50;
+
+        nk_progress(ctx, &prog, 100, nk_false);
     }
     nk_end(ctx);
 
@@ -110,13 +114,12 @@ extern "C"
 JNIEXPORT jboolean JNICALL
 Java_io_snower_game_client_NuklearUIRenderer_begin
 (JNIEnv * env, jobject obj, jstring text, jfloat x, jfloat y, jfloat width, jfloat height, jint background, jint flags) {
-    // TODO: implement background style
-    nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba_u32(0x00000099));
-    nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba_u32(0x00000099)));
+    nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba_u32((nk_uint)background));
+    nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba_u32((nk_uint)background)));
     const char* c_text = env->GetStringUTFChars(text, nullptr);
-    int result = nk_begin(ctx, c_text, nk_rect(x, y, width, height), flags);
+    int result = nk_begin(ctx, c_text, nk_rect(x, y, width, height), (nk_flags)flags);
     env->ReleaseStringUTFChars(text, c_text);
-    return static_cast<jboolean>(result != 0);
+    return (jboolean)(result != 0);
 }
 
 extern "C"
@@ -169,6 +172,6 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_io_snower_game_client_NuklearUIRenderer_progress
 (JNIEnv* env, jobject obj, jint current, jint max, jint color, jint background) {
-    auto prog = static_cast<size_t>(current);
-    nk_progress(ctx, &prog, static_cast<nk_size>(max), nk_false);
+    auto prog = (size_t)current;
+    nk_progress(ctx, &prog, (nk_size)(max), nk_false);
 }

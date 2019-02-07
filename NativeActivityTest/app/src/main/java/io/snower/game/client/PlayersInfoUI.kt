@@ -27,8 +27,8 @@ class PlayersInfoUI : UIDrawable {
                 (screenWidth / 2f) - (windowWidth / 2f),
                 (screenHeight / 2f) - (windowHeight / 2f),
                 windowWidth, windowHeight,
-                drawer.WINDOW_TITLE or drawer.WINDOW_NO_SCROLLBAR,
-                BLACK_TRANSPARENT)) {
+                BLACK_TRANSPARENT,
+                drawer.WINDOW_TITLE or drawer.WINDOW_NO_SCROLLBAR)) {
             for (player in players) {
                 drawer.layoutRowDynamic(20f, 3)
                 drawer.label(player, drawer.TEXT_LEFT)
