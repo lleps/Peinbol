@@ -8,6 +8,7 @@ import android.opengl.GLSurfaceView
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.view.WindowManager
 import io.snower.game.common.*
 import javax.microedition.khronos.egl.EGLConfig
@@ -56,6 +57,16 @@ class MainActivity : Activity() {
             surface = GLSurfaceView(this)
             surface!!.setEGLContextClientVersion(2)
             surface!!.setRenderer(RendererWrapper())
+            surface!!.setOnTouchListener { v, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    AndroidMovementUI.mouseX = null
+                    AndroidMovementUI.mouseY = null
+                } else {
+                    AndroidMovementUI.mouseX = event.x
+                    AndroidMovementUI.mouseY = event.y
+                }
+                true
+            }
             setContentView(surface)
         } else {
             error("This device doesn't support OpenGL ES 2.0")
@@ -69,7 +80,7 @@ class MainActivity : Activity() {
             val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
-            Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
+            //Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -241,10 +252,10 @@ class MainActivity : Activity() {
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Int) {
         val inputState = Messages.InputState(
-            forward = false,
-            backwards = false,
-            left = false,
-            right = false,
+            forward = AndroidMovementUI.forward,
+            backwards = AndroidMovementUI.backwards,
+            left = AndroidMovementUI.left,
+            right = AndroidMovementUI.right,
             fire = false,
             fire2 = false,
             jump = false,
