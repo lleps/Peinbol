@@ -119,6 +119,7 @@ class MainActivity : Activity() {
             println("register UI elements...")
             uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
             uiRenderer.registerUIElement(HealthUI::class.java, HealthUI())
+            uiRenderer.registerUIElement(AndroidMovementUI::class.java, AndroidMovementUI())
             uiRenderer.registerUIElement(CrosshairUI::class.java, CrosshairUI {
                 val box = boxes[myBoxId]
                 box?.linearVelocity ?: Vector3f()
