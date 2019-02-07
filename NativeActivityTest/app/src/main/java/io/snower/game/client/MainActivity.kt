@@ -108,8 +108,9 @@ class MainActivity : Activity() {
             println("Initializing renderer...")
             worldRenderer.init()
 
-            println("Initialize UI...")
-            uiRenderer = NuklearUIRenderer()
+            println("Initialize UI and load assets..")
+            uiRenderer = NuklearUIRenderer(assetResolver)
+            uiRenderer.preloadAssets()
             uiRenderer.init()
 
             println("Initialize window...")

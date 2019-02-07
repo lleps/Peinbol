@@ -3,14 +3,18 @@ package io.snower.game.client
 import android.opengl.Matrix
 import android.util.Log
 import io.snower.game.common.*
+import org.joml.Planed
+import org.joml.Planef
 import org.joml.Vector4f
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import javax.vecmath.Color4f
+import javax.vecmath.Vector3f
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.tan
 import kotlin.system.measureTimeMillis
 
 /**
@@ -292,6 +296,39 @@ class WorldRenderer(
     fun setResolution(width: Int, height: Int) {
         this.width = width
         this.height = height
+    }
+
+    /** Optimization. Used to check if objects are inside the projected frustum, to avoid drawing when not necessary. */
+    private class FrustumTester {
+        enum class TestResult { OUTSIDE, INTERSECTS, INSIDE }
+        enum class CameraPlane(val idx: Int) { TOP(0), BOTTOM(1), LEFT(2), RIGHT(3), NEARP(4), FARP(5) }
+
+        private var fov: Float = 0f
+        private var ratio: Float = 0f
+        private var zNear: Float = 0f
+        private var zFar: Float = 0f
+
+        private var tang: Float = 0f
+        private var fw: Float = 0f
+        private var fh: Float = 0f
+        private var nw: Float = 0f
+        private var nh: Float = 0f
+
+        fun setPerspective(fov: Float, ratio: Float, zNear: Float, zFar: Float) {
+            this.fov = fov
+            this.ratio = ratio
+            this.zNear = zNear
+            this.zFar = zFar
+
+            tang = tan(radians(fov * 0.5f))
+            nh = zNear * tang
+            nw = nh * ratio
+            fh = zFar * tang
+            fw = fh * ratio
+        }
+
+        fun setLookAt(p: Vector3f, l: Vector3f, u: Vector3f) {
+        }
     }
 
     fun draw() {

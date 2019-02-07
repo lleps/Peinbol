@@ -1,7 +1,11 @@
 package io.snower.game.client
 
+import io.snower.game.common.BufferUtils
+import java.nio.Buffer
+import java.nio.ByteBuffer
+
 /** Implements ui rendering through nuklear, using JNI */
-class NuklearUIRenderer : UIRenderer, UIDrawer {
+class NuklearUIRenderer(private val assetResolver: AssetResolver) : UIRenderer, UIDrawer {
 
     private val uiDrawables = hashMapOf<Class<out UIDrawable>, UIDrawable>()
 
@@ -22,21 +26,29 @@ class NuklearUIRenderer : UIRenderer, UIDrawer {
 
     private var width: Int = 800
     private var height: Int = 600
+    private var nkContext = 0L
+    private var assetsLoaded = false
+    private var fontBuffer: ByteBuffer? = null
 
     override fun setResolution(width: Int, height: Int) {
         this.width = width
         this.height = height
     }
 
-    // Now implement this using JNI.
-    // first, completely ignore input. Just nuklear output.
-    // Must have methods to, draw everything in UIDrawer (this may implement the interface natively)
-    // And, methods to draw to openGL nuklear output
 
-    private var nkContext = 0L
+    override fun preloadAssets() {
+        if (assetsLoaded) return
+        // dumb copy here...
+        val fontData = assetResolver.getAsByteArray("demo/FiraSans.ttf")
+        val buffer = BufferUtils.createByteBuffer(fontData.size)
+        buffer.put(fontData)
+        buffer.position(0)
+        fontBuffer = buffer
+        assetsLoaded = true
+    }
 
     override fun init() {
-        nkContext = createNuklearContext()
+        nkContext = createNuklearContext(fontBuffer!!)
     }
 
     override fun draw() {
@@ -53,7 +65,7 @@ class NuklearUIRenderer : UIRenderer, UIDrawer {
     // Native functions
 
     // internally used (create and set the context for the functions below)
-    private external fun createNuklearContext(): Long
+    private external fun createNuklearContext(fontPointer: Buffer): Long
     private external fun setCurrentNuklearContext(context: Long) // sets the global state to use the given context
     private external fun drawNuklearOutput(width: Int, height: Int)
 

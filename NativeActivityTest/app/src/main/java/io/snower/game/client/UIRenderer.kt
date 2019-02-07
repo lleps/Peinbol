@@ -8,6 +8,7 @@ interface UIRenderer {
 
     fun setResolution(width: Int, height: Int)
 
+    fun preloadAssets()
     fun init()
     fun draw()
     fun destroy()

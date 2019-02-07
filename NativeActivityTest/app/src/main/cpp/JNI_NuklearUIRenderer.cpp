@@ -17,8 +17,9 @@
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
 
-#define  LOG_TAG    "libgl2jni"
+#define  LOG_TAG    "snower-jni"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
 struct nk_context* ctx = NULL;
 
@@ -76,13 +77,21 @@ void renderStandardExample(int width, int height) {
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_io_snower_game_client_NuklearUIRenderer_createNuklearContext(JNIEnv * env, jobject obj) {
+Java_io_snower_game_client_NuklearUIRenderer_createNuklearContext(JNIEnv * env, jobject obj, jobject fontPointer) {
     if (ctx != NULL) {
         LOGI("Context already initialized. Return it.");
     } else {
         ctx = nk_gles_init();// isn't it deleted when going out of scope?
         struct nk_font_atlas *atlas;
         nk_gles_font_stash_begin(&atlas);
+        jbyte* fontPtr = (jbyte*) env->GetDirectBufferAddress(fontPointer);
+        if (fontPtr != nullptr) {
+            jlong size = env->GetDirectBufferCapacity(fontPointer);
+            //nk_font_atlas_add_from_memory(atlas, fontPtr, static_cast<nk_size>(size), 14, nullptr);
+            LOGI("Passed a font pointer to createNuklearContext");
+        } else {
+            LOGI("Use default font in createNuklearContext");
+        }
         // TODO: add a better font
         /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
         /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16, 0);*/
