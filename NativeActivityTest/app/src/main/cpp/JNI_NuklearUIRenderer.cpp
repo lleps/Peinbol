@@ -174,6 +174,5 @@ Java_io_snower_game_client_NuklearUIRenderer_progress
 (JNIEnv* env, jobject obj, jint current, jint max, jint color, jint background) {
     auto prog = (size_t)current;
     ctx->style.progress.cursor_normal.data.color = nk_rgba_u32((nk_uint)color);
-    ctx->style.progress.normal.data.color = nk_rgba_u32((nk_uint)background);
     nk_progress(ctx, &prog, (nk_size)(max), nk_false);
 }
