@@ -1,5 +1,6 @@
 package io.snower.game.client
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
@@ -44,6 +45,10 @@ class MainActivity : Activity() {
     private val playerSoundSources = hashMapOf<Box, AudioSource>()
     private var myBoxId = -1
 
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+
+    @SuppressLint("ClickableViewAccessibility")
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
@@ -58,13 +63,26 @@ class MainActivity : Activity() {
             surface!!.setEGLContextClientVersion(2)
             surface!!.setRenderer(RendererWrapper())
             surface!!.setOnTouchListener { v, event ->
-                if (event.action == MotionEvent.ACTION_UP) {
+
+
+                // Calculate delta, since the last movement?
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+                } else if (event.action == MotionEvent.ACTION_UP) {
                     AndroidMovementUI.mouseX = null
                     AndroidMovementUI.mouseY = null
+                    println("reset delta")
                 } else {
                     AndroidMovementUI.mouseX = event.x
                     AndroidMovementUI.mouseY = event.y
+                    deltaX += (event.x - lastTouchX) / 20f
+                    deltaY += (event.y - lastTouchY) / 20f
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+                    println("Set delta: $deltaX $deltaY")
                 }
+
                 true
             }
             setContentView(surface)
@@ -73,10 +91,15 @@ class MainActivity : Activity() {
         }
     }
 
+    var deltaX = 0f
+    var deltaY = 0f
+
     inner class RendererWrapper : GLSurfaceView.Renderer {
         override fun onDrawFrame(gl: GL10?) {
             network.pollMessages()
-            update(window, window.mouseDeltaX, window.mouseDeltaY, 16)
+            update(window, deltaX, deltaY, 16)
+            deltaX = 0f
+            deltaY = 0f
             val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }

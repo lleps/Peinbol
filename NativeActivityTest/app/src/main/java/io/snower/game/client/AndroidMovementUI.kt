@@ -46,7 +46,7 @@ class AndroidMovementUI : UIDrawable {
                 10f)
             val mx = mouseX
             val my = mouseY
-            if (mx == null) {
+            if (mx == null || mx > screenWidth / 2f || my!! < screenHeight / 2f) {
                 drawCircle(drawer,
                     centerX, centerY,
                     INNER_RADIUS,
@@ -57,11 +57,8 @@ class AndroidMovementUI : UIDrawable {
                 // now, to vector
                 val direction = Vector2f(mx - centerX, my!! - centerY)
                 if (direction.length() > RING_RADIUS) {
-                    Log.i("tag", "out of the ring")
                     direction.normalize()
                     direction.scale(RING_RADIUS)
-                } else {
-                    Log.i("tag", "in the ring")
                 }
 
                 // check direction

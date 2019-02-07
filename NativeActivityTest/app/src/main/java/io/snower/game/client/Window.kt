@@ -42,8 +42,8 @@ class Window(
         }
 
         if (mouseVisible) {
-            mouseDeltaX = -1f + (Math.random().toFloat()*2f)
-            mouseDeltaY = -1f + (Math.random().toFloat()*2f)
+            //mouseDeltaX = -1f + (Math.random().toFloat()*2f)
+            //mouseDeltaY = -1f + (Math.random().toFloat()*2f)
         }
     }
 
