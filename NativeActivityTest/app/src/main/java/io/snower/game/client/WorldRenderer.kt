@@ -10,8 +10,12 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
+import kotlin.concurrent.thread
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
@@ -263,22 +267,31 @@ class WorldRenderer(
     /** Load renderer assets into memory, such as textures and shaders. Does't touch OpenGL. */
     fun loadAssets() {
         if (!assetsLoaded) {
-            for ((txtId, txtFile) in Textures.FILES) {
-                try {
-                    val data = assetResolver.getAsByteArray(txtFile)
-                    val inputStream = ByteArrayInputStream(data)
-                    inputStream.use {
-                        textures[txtId] = GLTextureWrapper.createFromPNGInputStream(it)
+            val results = ConcurrentHashMap<String, GLTextureWrapper>()
+            val filesQueue = ConcurrentLinkedQueue<String>()
+            Textures.FILES.values.forEach { filesQueue.offer(it) }
+            repeat(4) {
+                thread {
+                    while (true) {
+                        val fileName = filesQueue.poll() ?: return@thread
+                        val data = assetResolver.getAsByteArray(fileName)
+                        val inputStream = ByteArrayInputStream(data)
+                        results[fileName] = GLTextureWrapper.createFromPNGInputStream(inputStream)
+                        println("load fileName $fileName")
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    error("can't load txt id $txtId (file: $txtFile): $e")
                 }
+            }
+            while (results.size < Textures.FILES.size) {
+                Thread.sleep(100)
+            }
+            for ((fileName, wrapper) in results) {
+                val id = Textures.FILES.entries.first { it.value == fileName }.key
+                textures[id] = wrapper
+                println("save txt id $id (filename $fileName )")
             }
 
             vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
             fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
-
             assetsLoaded = true
         }
     }

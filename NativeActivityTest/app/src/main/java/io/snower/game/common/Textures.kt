@@ -18,7 +18,7 @@ object Textures {
         CLOTH_ID to "cloth.png",
         CREEPER_ID to "creeper.png",
         FOOTBALL_ID to "football.png",
-        GRASS_ID to "creeper.png",
+        GRASS_ID to "grass.png",
         BRICKS_GREY_ID to "greybricks.png"
     )
 }
