@@ -6,7 +6,6 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.opengl.GLSurfaceView
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
@@ -23,7 +22,6 @@ import kotlin.system.measureTimeMillis
 class MainActivity : Activity() {
 
     companion object {
-
         init {
             System.loadLibrary("native-lib")
         }
@@ -31,7 +29,9 @@ class MainActivity : Activity() {
         private const val TAG = "snower"
     }
 
+    // Major modules
     private var surface: GLSurfaceView? = null
+    private var surfaceAlreadyCreated = false
     private lateinit var physics: PhysicsInterface
     private lateinit var window: Window
     private lateinit var network: Network.Client
@@ -40,59 +40,81 @@ class MainActivity : Activity() {
     private lateinit var uiRenderer: UIRenderer
     private lateinit var assetResolver: AssetResolver
 
-    // player state
+    // Player state. Must be moved to a custom game logic class to make reusable
     private val boxes = hashMapOf<Int, Box>()
     private val playerSoundSources = hashMapOf<Box, AudioSource>()
     private var myBoxId = -1
 
+    // Tracks camera rotation the dirty way
     private var lastTouchX = 0f
     private var lastTouchY = 0f
+    private var deltaX = 0f
+    private var deltaY = 0f
 
     @SuppressLint("ClickableViewAccessibility")
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        //this.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        //getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        //requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
+        // Connect to the server as quick as possible, in parallel
+        val host = "35.198.14.75"
+        val port = 8080
+        val name = "lleps"
+        println("Connecting to $host:$port as '$name'...")
+        network = Network.createClientAndConnect(host, port) { error ->
+            if (error != null) {
+                Log.e(TAG, "Can't connect to $host:$port", error)
+                finishActivity(1)
+            } else {
+                Log.i(TAG, "Connected!")
+                network.send(Messages.ConnectionInfo(name))
+            }
+        }
+        network.onServerMessage { msg -> handleNetworkMessage(msg) }
+
+        // Preload assets, in parallel as well
+
+        println("Loading renderer assets...")
+        physics = BulletPhysicsNativeImpl().apply { init() }
+        assetResolver = AndroidAssetResolver(assets)
+        worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics)
+        worldRenderer.preloadAssets()
+
+        // Ensure GLES 2 support
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val configurationInfo = activityManager.deviceConfigurationInfo
         val supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000
-        if (supportsEs2) {
-            surface = GLSurfaceView(this)
-            surface!!.setEGLContextClientVersion(2)
-            surface!!.setRenderer(RendererWrapper())
-            surface!!.setOnTouchListener { v, event ->
+        if (!supportsEs2) error("Device doesn't support OpenGL ES 2")
 
-
-                // Calculate delta, since the last movement?
-                if (event.action == MotionEvent.ACTION_DOWN) {
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-                } else if (event.action == MotionEvent.ACTION_UP) {
-                    AndroidMovementUI.mouseX = null
-                    AndroidMovementUI.mouseY = null
-                    println("reset delta")
-                } else {
-                    AndroidMovementUI.mouseX = event.x
-                    AndroidMovementUI.mouseY = event.y
-                    deltaX += (event.x - lastTouchX) / 20f
-                    deltaY += (event.y - lastTouchY) / 20f
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-                    println("Set delta: $deltaX $deltaY")
-                }
-
-                true
+        // Create surface
+        surface = GLSurfaceView(this)
+        surface!!.setEGLContextClientVersion(2)
+        surface!!.setRenderer(RendererWrapper())
+        surface!!.setOnTouchListener { v, event ->
+            // TODO: make controls properly
+            // Calculate delta, since the last movement?
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                lastTouchX = event.x
+                lastTouchY = event.y
+            } else if (event.action == MotionEvent.ACTION_UP) {
+                AndroidMovementUI.mouseX = null
+                AndroidMovementUI.mouseY = null
+                //println("reset delta")
+            } else {
+                AndroidMovementUI.mouseX = event.x
+                AndroidMovementUI.mouseY = event.y
+                deltaX += (event.x - lastTouchX) / 100f
+                deltaY += (event.y - lastTouchY) / 100f
+                lastTouchX = event.x
+                lastTouchY = event.y
+                //println("Set delta: $deltaX $deltaY")
             }
-            setContentView(surface)
-        } else {
-            error("This device doesn't support OpenGL ES 2.0")
+            true
         }
+        setContentView(surface)
     }
-
-    var deltaX = 0f
-    var deltaY = 0f
 
     inner class RendererWrapper : GLSurfaceView.Renderer {
         override fun onDrawFrame(gl: GL10?) {
@@ -107,39 +129,20 @@ class MainActivity : Activity() {
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-            Log.i(TAG, "Change resolution to $width x $height")
+            Log.i(TAG, "Surface changed to: $width x $height")
             worldRenderer.setResolution(width, height)
             uiRenderer.setResolution(width, height)
         }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            val host = "35.198.14.75"
-            val port = 8080
-            val name = "lleps"
-
-            println("Connecting to $host:$port as '$name'...")
-            network = Network.createClient(host, port)
-            network.onServerMessage { msg -> handleNetworkMessage(msg) }
-            network.send(Messages.ConnectionInfo(name))
-            println("ok.")
-
+            // TODO: most things should be initialized in the activity main, except for the openGL/AL context.
             println("Setup audio...")
             audioManager = AudioManager()
             audioManager.init()
             println("ok.")
 
-            println("Setup physics...")
-            physics = BulletPhysicsNativeImpl().apply { init() }
-            println("ok.")
-
-            assetResolver = AndroidAssetResolver(assets)
-            worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics)
-
-            println("Loading renderer assets...")
-            worldRenderer.loadAssets()
-            println("ok.")
-
-            println("Initializing renderer...")
+            println("Initializing renderer... (waiting till resource load)")
+            while (!worldRenderer.assetsLoaded || !network.connected) Thread.sleep(50)
             worldRenderer.init()
 
             println("Initialize UI and load assets..")
@@ -148,7 +151,7 @@ class MainActivity : Activity() {
             uiRenderer.init()
 
             println("Initialize window...")
-            window = Window(assetResolver)
+            window = Window(assetResolver) // TODO remove this. is totally useless
 
             println("register UI elements...")
             uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
@@ -167,14 +170,15 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        println("onResume()")
         surface!!.onResume()
     }
 
     override fun onPause() {
         super.onPause()
+        println("onPause()")
         surface!!.onPause()
     }
-
 
     /** Called when a message from the server arrives. */
     private fun handleNetworkMessage(msg: Any) {

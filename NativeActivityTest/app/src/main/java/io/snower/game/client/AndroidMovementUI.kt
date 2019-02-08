@@ -68,7 +68,7 @@ class AndroidMovementUI : UIDrawable {
                 forward = angle == -1 || angle == -2
                 backwards = angle == 1 || angle == 2
                 // = Math.toDegrees(Vector2f().angle(direction).toDouble())
-                Log.i("tag", "angle: $angle")
+                //Log.i("tag", "angle: $angle")
                 drawCircle(drawer,
                     centerX + direction.x, centerY + direction.y,
                     INNER_RADIUS,

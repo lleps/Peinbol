@@ -15,9 +15,9 @@ import kotlin.concurrent.thread
 class Network {
     companion object {
         /** Create a connected client to [host]:[port]. */
-        fun createClient(host: String, port: Int): Client {
+        fun createClientAndConnect(host: String, port: Int, onConnect: (Throwable?) -> Unit): Client {
             val client = Client(host, port)
-            client.connect()
+            client.connectAsync(onConnect)
             return client
         }
 
@@ -98,18 +98,17 @@ class Network {
             }
         }
 
-        private var connected = false
+        @Volatile
+        var connected = false
+            private set
+
         private lateinit var channel: Channel
         private var serverMessageCallback: (message: Any) -> Unit = {}
         private var messagesQueue = ConcurrentLinkedQueue<Any>() // to push to main thread messages from the server.
 
-        /** Try to connect to the server, may throw an error. */
-        fun connect() {
+        /** Try to connect, calls onConnect with the exception, which is null if succeed. */
+        fun connectAsync(onConnect: (Throwable?) -> Unit) {
             check(!connected) { "must not be connected." }
-
-            var connectionDone = false
-            var connectionException: Throwable? = null
-            var channel: Channel? = null
 
             thread {
                 val workerGroup = NioEventLoopGroup()
@@ -126,26 +125,34 @@ class Network {
                     })
 
                     val f = b.connect(host, port).sync() // (5)
-                    connectionDone = true
-                    connectionException = null
+                    connected = true
                     channel = f.channel()
+                    onConnect(null)
                     f.channel().closeFuture().sync()
                 } catch (e: Exception) {
-                    connectionDone = true
-                    connectionException = e
+                    connected = false
+                    onConnect(e)
                 } finally {
-                    connectionDone = true
                     workerGroup.shutdownGracefully()
                 }
             }
+        }
+
+        /** Try to connect to the server, may throw an error. Blocking. */
+        fun connect() {
+            var connectionException: Throwable? = null
+            var connectionDone = false
+            connectAsync { error ->
+                if (error != null) {
+                    connectionException = error
+                }
+                connectionDone = true
+            }
 
             // wait until thread fails or connects.
-            while (!connectionDone) Thread.sleep(25)
+            while (!connectionDone) Thread.sleep(50)
             if (connectionException != null) {
                 throw connectionException!!
-            } else {
-                this.channel = channel!!
-                this.connected = true
             }
         }
 

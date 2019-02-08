@@ -60,6 +60,7 @@ class NuklearUIRenderer(private val assetResolver: AssetResolver) : UIRenderer, 
     }
 
     override fun destroy() {
+        // should remove nuklear context I guess.
     }
 
     // Native functions

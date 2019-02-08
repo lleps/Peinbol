@@ -12,6 +12,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.vecmath.Color4f
 import javax.vecmath.Vector3f
@@ -22,7 +23,7 @@ import kotlin.math.tan
 import kotlin.system.measureTimeMillis
 
 /**
- * Renders the world and loadAssets the assets that are necessary for
+ * Renders the world and preloadAssets the assets that are necessary for
  * that, such as textures and shaders.
  */
 class WorldRenderer(
@@ -261,40 +262,47 @@ class WorldRenderer(
             field = value % 360f
         }
 
-    private var assetsLoaded = false
-    private var glInited = false
+    /** Returns true when assets have been preloaded. */
+    val assetsLoaded: Boolean get() = assetsLoadedAtomic.get()
+    private val assetsLoadedAtomic = AtomicBoolean(false)
 
-    /** Load renderer assets into memory, such as textures and shaders. Does't touch OpenGL. */
-    fun loadAssets() {
+    /** Preload renderer assets asynchronously.  */
+    fun preloadAssets(threads: Int = 3, onLoad: (() -> Unit)? = null) {
+        // maybe use some abstraction instead of raw threads?
         if (!assetsLoaded) {
             val results = ConcurrentHashMap<String, GLTextureWrapper>()
             val filesQueue = ConcurrentLinkedQueue<String>()
             Textures.FILES.values.forEach { filesQueue.offer(it) }
-            repeat(4) {
-                thread {
+            repeat(threads) { threadId ->
+                thread(name = "assetLoader-$threadId") {
+                    if (threadId == 0) {
+                        vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
+                        fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
+                    }
+
                     while (true) {
-                        val fileName = filesQueue.poll() ?: return@thread
+                        val fileName = filesQueue.poll() ?: break
                         val data = assetResolver.getAsByteArray(fileName)
                         val inputStream = ByteArrayInputStream(data)
                         results[fileName] = GLTextureWrapper.createFromPNGInputStream(inputStream)
-                        println("load fileName $fileName")
+                        println("Load fileName $fileName")
+                    }
+                    // Nothing more to load. The first to reach this
+                    // updates the flag and reports to the callback.
+                    if (!assetsLoadedAtomic.getAndSet(true)) {
+                        for ((fileName, wrapper) in results) {
+                            val id = Textures.FILES.entries.first { it.value == fileName }.key
+                            textures[id] = wrapper
+                            println("Register texture ID: $id for file: $fileName")
+                        }
+                        onLoad?.invoke()
                     }
                 }
             }
-            while (results.size < Textures.FILES.size) {
-                Thread.sleep(100)
-            }
-            for ((fileName, wrapper) in results) {
-                val id = Textures.FILES.entries.first { it.value == fileName }.key
-                textures[id] = wrapper
-                println("save txt id $id (filename $fileName )")
-            }
-
-            vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
-            fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
-            assetsLoaded = true
         }
     }
+
+    private var glInited = false
 
     fun init() {
         if (!glInited) {
