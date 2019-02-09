@@ -2,10 +2,9 @@ package io.snower.game.client
 
 import android.view.MotionEvent
 import io.snower.game.common.degrees
-import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
 import javax.vecmath.Vector2f
 import kotlin.math.atan2
+
 
 /** Implements controls using a touch interface. */
 class AndroidControls : Controls, UIDrawable {
@@ -26,92 +25,86 @@ class AndroidControls : Controls, UIDrawable {
     private var height = 100
 
     // For movement panel
-    private var touchingControls = false // if any finger is down in the controls panel
-    private var controlsFingerIndex = -1 // the id of the action in the motionEvent
+    private var controlsFingerId = -1 // the id of the action in the motionEvent
     private var controlsX = 0f // last registered position in screen for the controls finger
     private var controlsY = 0f
 
     // For rotation
+    private var rotFingerId = -1
     private var lastRotX = 0f
     private var lastRotY = 0f
     private var deltaRotX = 0f
     private var deltaRotY = 0f
-    private var rotFingerIndex = -1
 
     // called from the UI thread
     fun handleTouchEvent(event: MotionEvent) {
         processEvent(event)
     }
 
-    private fun processEvent(e: MotionEvent) {
-        println("motionEvent $e")
-
-        if (e.x < width / 2) { // movement control zone
-            when (e.actionMasked) {
-                // if in any event, the user is touching the controls zone, set the variables
-                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_MOVE -> {
-                    if (!touchingControls) {
-                        touchingControls = true
-                        controlsX = e.getX(e.actionIndex)
-                        controlsY = e.getY(e.actionIndex)
-                        controlsFingerIndex = e.actionIndex
-                    } else {
-                        if (controlsFingerIndex == e.actionIndex) {
-                            controlsX = e.getX(controlsFingerIndex)
-                            controlsY = e.getY(controlsFingerIndex)
-                        }
+    private fun pointerUpdate(id: Int, action: Int, x: Float, y: Float) {
+        when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (x > width / 2) { // rotation
+                    if (rotFingerId == -1) {
+                        rotFingerId = id
+                        lastRotX = x
+                        lastRotY = y
+                        deltaRotX = 0f
+                        deltaRotY = 0f
                     }
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> { // stopped touching controls BUT
-                    if (e.actionIndex == controlsFingerIndex) {
-                        touchingControls = false
-                        controlsFingerIndex = -1
-                    }
-                    // Cancel if drag from the rotation to the movement area
-                    if (rotFingerIndex == e.actionIndex) {
-                        rotFingerIndex = -1
+                } else {
+                    if (controlsFingerId == -1) { // movement
+                        controlsFingerId = id
+                        controlsX = x
+                        controlsY = y
                     }
                 }
             }
-        } else { // rotation
-            // Cancel movement when you drag to the other part of the screen
-            if (e.actionIndex == controlsFingerIndex) {
-                touchingControls = false
-                controlsFingerIndex = -1
-            } else {
-                when (e.actionMasked) {
-                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                        if (rotFingerIndex == -1) {
-                            rotFingerIndex = e.actionIndex
-                            lastRotX = e.getX(e.actionIndex)
-                            lastRotY = e.getY(e.actionIndex)
-                            deltaRotX = 0f
-                            deltaRotY = 0f
-                            //println("ACTION_DOWN and no index. Set to $rotFingerIndex and everything to 0. lr: ${lastRotX} $lastRotY")
-                        }
-                    }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                        if (rotFingerIndex == e.actionIndex) {
-                            //println("ACTION_UP for $rotFingerIndex. Set to -1")
-                            rotFingerIndex = -1
-                        } else {
-                            //println("Invalid index in ACTION_UP: ${e.actionIndex}")
-                        }
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (e.actionIndex == rotFingerIndex) {
-                            val x = e.getX(e.actionIndex)
-                            val y = e.getY(e.actionIndex)
-                            deltaRotX += (x - lastRotX) / 10f
-                            deltaRotY += (y - lastRotY) / 10f
-                            //println("Movement for rot index ($rotFingerIndex): $deltaRotX $deltaRotY. lr: ${lastRotX} $lastRotY")
-                            lastRotX = e.x
-                            lastRotY = e.y
-                        } else {
-                            //println("Another index (rot: $rotFingerIndex curr: ${e.action}). Ignore event.")
+            MotionEvent.ACTION_MOVE -> {
+                if (id == rotFingerId) {
+                    deltaRotX += (x - lastRotX) / 10f
+                    deltaRotY += (y - lastRotY) / 10f
+                    lastRotX = x
+                    lastRotY = y
+                } else if (id == controlsFingerId) {
+                    controlsX = x
+                    controlsY = y
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                if (id == rotFingerId) {
+                    rotFingerId = -1
+                } else if (id == controlsFingerId) {
+                    controlsFingerId = -1
+                }
+            }
+        }
+    }
+
+    private fun processEvent(e: MotionEvent) {
+        val pointerIndex = e.actionIndex
+        var pointerId = e.getPointerId(pointerIndex)
+        val maskedAction = e.actionMasked
+
+        when (maskedAction) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                pointerUpdate(pointerId, MotionEvent.ACTION_DOWN, e.getX(pointerIndex), e.getY(pointerIndex))
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val pointerCount = e.pointerCount
+                for (i in 0 until pointerCount) {
+                    if (e.historySize > 0) {
+                        if (e.getX(i).toInt() != e.getHistoricalX(i, 0).toInt() ||
+                            e.getY(i).toInt() != e.getHistoricalY(i, 0).toInt()
+                        ) {
+                            pointerId = e.getPointerId(i)
+                            pointerUpdate(pointerId, MotionEvent.ACTION_MOVE, e.getX(i), e.getY(i))
                         }
                     }
                 }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                pointerUpdate(pointerId, MotionEvent.ACTION_UP, e.getX(pointerIndex), e.getY(pointerIndex))
             }
         }
     }
@@ -124,8 +117,8 @@ class AndroidControls : Controls, UIDrawable {
 
     // here should reset rotation delta
     override fun readDone() {
-        deltaRotX *= 0.9f
-        deltaRotY *= 0.9f
+        deltaRotX *= 0.7f
+        deltaRotY *= 0.7f
     }
 
     // Update the movement panel
@@ -150,7 +143,7 @@ class AndroidControls : Controls, UIDrawable {
                 10f)
 
             // draw movement point
-            if (!touchingControls) { // on the center
+            if (controlsFingerId == -1) { // on the center
                 drawCircle(drawer,
                     centerX, centerY,
                     INNER_RADIUS,
