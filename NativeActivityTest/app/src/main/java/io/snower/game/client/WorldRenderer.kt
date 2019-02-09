@@ -347,6 +347,7 @@ class WorldRenderer(
     }
 
     fun draw() {
+        gl.glUseProgram(program)
         mvpMatrixHandle = gl.glGetUniformLocation(program, "u_MVPMatrix")
         mvMatrixHandle = gl.glGetUniformLocation(program, "u_MVMatrix")
         lightPosHandle = gl.glGetUniformLocation(program, "u_LightPos")
@@ -361,21 +362,19 @@ class WorldRenderer(
         gl.glViewport(0, 0, width, height)
         gl.glEnable(gl.GL_CULL_FACE)
         gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glUseProgram(program)
         gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
         matrixOps.identity(projectionMatrix)
-        matrixOps.perspective(projectionMatrix, 30f, width.toFloat()/height.toFloat(), 0.001f, 1000f)
+        matrixOps.perspective(projectionMatrix, 45f, width.toFloat()/height.toFloat(), 0.2f, 1000f)
 
         matrixOps.identity(viewMatrix)
         matrixOps.lookAt(viewMatrix,
             cameraPosX,
             cameraPosY,
             cameraPosZ,
-            cameraPosX + cos(-cameraRotY - 90f),
-            cameraPosY - sin(-cameraRotX),
-            cameraPosZ + sin(-cameraRotY - 90f),
+            cameraPosX + cos(radians(-cameraRotY - 90f)),
+            cameraPosY - sin(radians(-cameraRotX)),
+            cameraPosZ + sin(radians(-cameraRotY - 90f)),
             0f,
             1f,
             0f)
@@ -397,12 +396,6 @@ class WorldRenderer(
         for (box in boxes) {
             physicsInterface.getBoxOpenGLMatrix(box, modelMatrix)
             matrixOps.scale(modelMatrix, box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
-
-            if (box.theColor.w < 1f) {
-                gl.glEnable(gl.GL_BLEND)
-            } else {
-                gl.glDisable(gl.GL_BLEND)
-            }
 
             textures[box.textureId]?.bind(gl)
             gl.glUniform1i(textureUniformHandle, 0)
