@@ -109,13 +109,17 @@ class MainActivity : Activity() {
     }
 
     inner class RendererWrapper : GLSurfaceView.Renderer {
+        private var frameReportCounter = 0
+
         override fun onDrawFrame(gl: GL10?) {
             network.pollMessages()
             update(window, 0f, 0f, 16)
             val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
-            //Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
+            if (frameReportCounter++ % 10 == 0) {
+                Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
+            }
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -270,7 +274,6 @@ class MainActivity : Activity() {
             cameraX = worldRenderer.cameraRotX,
             cameraY = worldRenderer.cameraRotY
         )
-        println("Camera: (${worldRenderer.cameraRotX} ${worldRenderer.cameraRotY})")
 
         // Camera update
         val playerBox = boxes[myBoxId]

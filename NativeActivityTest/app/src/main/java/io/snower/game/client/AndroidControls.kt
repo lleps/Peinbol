@@ -3,6 +3,7 @@ package io.snower.game.client
 import android.view.MotionEvent
 import io.snower.game.common.degrees
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.vecmath.Vector2f
 import kotlin.math.atan2
 
@@ -28,53 +29,50 @@ class AndroidControls : Controls, UIDrawable {
     private var controlsX = 0f // last registered position in screen for the controls finger
     private var controlsY = 0f
 
-    private val motionEvents = Collections.synchronizedList(arrayListOf<MotionEvent>())
+    private var width = 100
+    private var height = 100
 
     // called from the UI thread
     fun handleTouchEvent(event: MotionEvent) {
-        motionEvents += event
+        processEvent(event)
+    }
+
+    private fun processEvent(e: MotionEvent) {
+        if (e.x < width / 2) { // movement control zone
+            when (e.action) {
+                // if in any event, the user is touching the controls zone, set the variables
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    if (!touchingControls) {
+                        touchingControls = true
+                        controlsX = e.x
+                        controlsY = e.y
+                        controlsFingerIndex = e.actionIndex
+                    } else {
+                        if (controlsFingerIndex == e.actionIndex) {
+                            controlsX = e.x
+                            controlsY = e.y
+                        }
+                    }
+                }
+                MotionEvent.ACTION_UP -> { // stopped touching controls BUT
+                    if (e.actionIndex == controlsFingerIndex) {
+                        touchingControls = false
+                        controlsFingerIndex = -1
+                    }
+                }
+            }
+        } else { // rotation
+            // Cancel movement when you drag to the other part of the screen
+            if (e.actionIndex == controlsFingerIndex) {
+                touchingControls = false
+                controlsFingerIndex = -1
+            }
+        }
     }
 
     override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
-        // should draw the state of the ui?
-        // meh. simply update.
-        // drain all motion events
-        val copy = motionEvents.toList()
-        motionEvents.clear()
-        for (e in copy) {
-            if (e.x < screenWidth / 2f) { // movement control zone
-                when (e.action) {
-                    // if in any event, the user is touching the controls zone, set the variables
-                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                        if (!touchingControls) {
-                            touchingControls = true
-                            controlsX = e.x
-                            controlsY = e.y
-                            controlsFingerIndex = e.actionIndex
-                        } else {
-                            if (controlsFingerIndex == e.actionIndex) {
-                                controlsX = e.x
-                                controlsY = e.y
-                            }
-                        }
-                    }
-                    MotionEvent.ACTION_UP -> { // stopped touching controls BUT
-                        if (e.actionIndex == controlsFingerIndex) {
-                            touchingControls = false
-                            controlsFingerIndex = -1
-                        }
-                    }
-                }
-            } else { // rotation
-                // Cancel movement when you drag to the other part of the screen
-                if (e.actionIndex == controlsFingerIndex) {
-                    touchingControls = false
-                    controlsFingerIndex = -1
-                }
-            }
-        }
-        motionEvents.clear()
-
+        width = screenWidth.toInt()
+        height = screenHeight.toInt()
         updateAndDrawMovement(drawer, screenWidth, screenHeight)
     }
 
@@ -131,13 +129,6 @@ class AndroidControls : Controls, UIDrawable {
                     INNER_RADIUS,
                     INNER_COLOR,
                     0f)
-                val str = when {
-                    left -> "left"
-                    right -> "right"
-                    forward -> "forward"
-                    backwards -> "backwards"
-                    else -> "none"
-                }
             }
         }
         drawer.end()
