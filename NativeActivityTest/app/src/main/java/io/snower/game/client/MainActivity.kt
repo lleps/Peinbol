@@ -66,7 +66,7 @@ class MainActivity : Activity() {
         network = Network.createClientAndConnect(host, port) { error ->
             if (error != null) {
                 Log.e(TAG, "Can't connect to $host:$port", error)
-                finishActivity(1)
+                runOnUiThread { finishActivity(1) }
             } else {
                 Log.i(TAG, "Connected!")
                 network.send(Messages.ConnectionInfo(name))
