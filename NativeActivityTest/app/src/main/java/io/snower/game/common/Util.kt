@@ -78,3 +78,5 @@ fun vectorFront(angleX: Float, angleY: Float, scale: Float = 1f): Vector3f {
 }
 
 fun radians(degrees: Float): Float = Math.toRadians(degrees.toDouble()).toFloat()
+
+fun degrees(radians: Float): Float = Math.toDegrees(radians.toDouble()).toFloat()

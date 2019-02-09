@@ -32,8 +32,8 @@ class MainActivity : Activity() {
 
     // Major modules
     private var surface: GLSurfaceView? = null
-    private var surfaceAlreadyCreated = false
     private lateinit var physics: PhysicsInterface
+    private lateinit var controls: AndroidControls
     private lateinit var window: Window
     private lateinit var network: Network.Client
     private lateinit var audioManager: AudioManager
@@ -45,12 +45,6 @@ class MainActivity : Activity() {
     private val boxes = hashMapOf<Int, Box>()
     private val playerSoundSources = hashMapOf<Box, AudioSource>()
     private var myBoxId = -1
-
-    // Tracks camera rotation the dirty way
-    private var lastTouchX = 0f
-    private var lastTouchY = 0f
-    private var deltaX = 0f
-    private var deltaY = 0f
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -71,7 +65,7 @@ class MainActivity : Activity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Connect to the server as quick as possible, in parallel. Connection should always be established.
+        // Connect to the server as quick as possible, in parallel
         val host = "35.198.14.75"
         val port = 8080
         val name = "lleps"
@@ -87,12 +81,15 @@ class MainActivity : Activity() {
         }
         network.onServerMessage { msg -> handleNetworkMessage(msg) }
 
-        // Preload assets, in parallel as well
-        Log.i(TAG, "Dispatch renderer asset loading...")
+        // Preload assets. Too slow to be blocking, must be moved somewhere else.
+        Log.i(TAG, "Loading assets...")
         physics = BulletPhysicsNativeImpl().apply { init() }
         assetResolver = AndroidAssetResolver(assets)
         worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics)
         worldRenderer.preloadAssets()
+
+        // Create controls instance
+        controls = AndroidControls()
 
         // Ensure GLES 2 support
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -100,29 +97,12 @@ class MainActivity : Activity() {
         val supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000
         if (!supportsEs2) error("Device doesn't support OpenGL ES 2")
 
-        // Create surface
+        // Create surface and pass touch events to the AndroidControls instance
         surface = GLSurfaceView(this)
         surface!!.setEGLContextClientVersion(2)
         surface!!.setRenderer(RendererWrapper())
         surface!!.setOnTouchListener { v, event ->
-            // TODO: make controls properly
-            // Calculate delta, since the last movement?
-            if (event.action == MotionEvent.ACTION_DOWN) {
-                lastTouchX = event.x
-                lastTouchY = event.y
-            } else if (event.action == MotionEvent.ACTION_UP) {
-                AndroidMovementUI.mouseX = null
-                AndroidMovementUI.mouseY = null
-                //println("reset delta")
-            } else {
-                AndroidMovementUI.mouseX = event.x
-                AndroidMovementUI.mouseY = event.y
-                deltaX += (event.x - lastTouchX) / 100f
-                deltaY += (event.y - lastTouchY) / 100f
-                lastTouchX = event.x
-                lastTouchY = event.y
-                //println("Set delta: $deltaX $deltaY")
-            }
+            controls.handleTouchEvent(event)
             true
         }
         setContentView(surface)
@@ -131,9 +111,7 @@ class MainActivity : Activity() {
     inner class RendererWrapper : GLSurfaceView.Renderer {
         override fun onDrawFrame(gl: GL10?) {
             network.pollMessages()
-            update(window, deltaX, deltaY, 16)
-            deltaX = 0f
-            deltaY = 0f
+            update(window, 0f, 0f, 16)
             val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
@@ -160,13 +138,13 @@ class MainActivity : Activity() {
 
             uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
             uiRenderer.registerUIElement(HealthUI::class.java, HealthUI())
-            uiRenderer.registerUIElement(AndroidMovementUI::class.java, AndroidMovementUI())
             uiRenderer.registerUIElement(CrosshairUI::class.java, CrosshairUI {
                 val box = boxes[myBoxId]
                 box?.linearVelocity ?: Vector3f()
             })
             uiRenderer.registerUIElement(ChatUI::class.java, ChatUI())
             uiRenderer.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
+            uiRenderer.registerUIElement(AndroidControls::class.java, controls)
         }
     }
 
@@ -281,10 +259,10 @@ class MainActivity : Activity() {
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Int) {
         val inputState = Messages.InputState(
-            forward = AndroidMovementUI.forward,
-            backwards = AndroidMovementUI.backwards,
-            left = AndroidMovementUI.left,
-            right = AndroidMovementUI.right,
+            forward = controls.checkForward(),
+            backwards = controls.checkBackwards(),
+            left = controls.checkLeft(),
+            right = controls.checkRight(),
             fire = false,
             fire2 = false,
             jump = false,
@@ -292,6 +270,7 @@ class MainActivity : Activity() {
             cameraX = worldRenderer.cameraRotX,
             cameraY = worldRenderer.cameraRotY
         )
+        println("Camera: (${worldRenderer.cameraRotX} ${worldRenderer.cameraRotY})")
 
         // Camera update
         val playerBox = boxes[myBoxId]

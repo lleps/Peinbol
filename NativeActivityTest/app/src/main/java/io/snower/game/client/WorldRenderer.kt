@@ -268,6 +268,7 @@ class WorldRenderer(
 
     /** Preload renderer assets */
     fun preloadAssets() {
+        // May be lazy. When ends, should push to some queue the wrapper, so it gets copied to openGL on next draw.
         // This will need a rewrite without a JVM.
         if (!assetsLoaded) {
             assetsLoaded = true
@@ -284,6 +285,7 @@ class WorldRenderer(
                 }
             }
             executor.submit {
+                // those needs to be blocking
                 vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
                 fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
             }

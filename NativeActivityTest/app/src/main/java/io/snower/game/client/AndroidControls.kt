@@ -1,0 +1,173 @@
+package io.snower.game.client
+
+import android.view.MotionEvent
+import io.snower.game.common.degrees
+import java.util.*
+import javax.vecmath.Vector2f
+import kotlin.math.atan2
+
+/** Implements controls using a touch interface. */
+class AndroidControls : Controls, UIDrawable {
+    companion object {
+        private const val RING_RADIUS = 90f
+        private const val INNER_RADIUS = 20f
+        private const val RING_COLOR = 0xFF8080FF.toInt()
+        private const val INNER_COLOR = 0x5FF050FF
+        private const val X_PAD = 100f //
+        private const val Y_PAD = 100f // padding from bottom-left
+    }
+
+    private var forward = false
+    private var backwards = false
+    private var left = false
+    private var right = false
+
+    // For controls panel
+    private var touchingControls = false // if any finger is down in the controls panel
+    private var controlsFingerIndex = -1 // the id of the action in the motionEvent
+    private var controlsX = 0f // last registered position in screen for the controls finger
+    private var controlsY = 0f
+
+    private val motionEvents = Collections.synchronizedList(arrayListOf<MotionEvent>())
+
+    // called from the UI thread
+    fun handleTouchEvent(event: MotionEvent) {
+        motionEvents += event
+    }
+
+    override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
+        // should draw the state of the ui?
+        // meh. simply update.
+        // drain all motion events
+        val copy = motionEvents.toList()
+        motionEvents.clear()
+        for (e in copy) {
+            if (e.x < screenWidth / 2f) { // movement control zone
+                when (e.action) {
+                    // if in any event, the user is touching the controls zone, set the variables
+                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                        if (!touchingControls) {
+                            touchingControls = true
+                            controlsX = e.x
+                            controlsY = e.y
+                            controlsFingerIndex = e.actionIndex
+                        } else {
+                            if (controlsFingerIndex == e.actionIndex) {
+                                controlsX = e.x
+                                controlsY = e.y
+                            }
+                        }
+                    }
+                    MotionEvent.ACTION_UP -> { // stopped touching controls BUT
+                        if (e.actionIndex == controlsFingerIndex) {
+                            touchingControls = false
+                            controlsFingerIndex = -1
+                        }
+                    }
+                }
+            } else { // rotation
+                // Cancel movement when you drag to the other part of the screen
+                if (e.actionIndex == controlsFingerIndex) {
+                    touchingControls = false
+                    controlsFingerIndex = -1
+                }
+            }
+        }
+        motionEvents.clear()
+
+        updateAndDrawMovement(drawer, screenWidth, screenHeight)
+    }
+
+    // here should reset rotation delta
+    override fun readDone() {
+    }
+
+    // Update the movement panel
+
+    private val directionVec = Vector2f()
+
+    private fun updateAndDrawMovement(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
+        val centerX = X_PAD + RING_RADIUS
+        val centerY = screenHeight - Y_PAD - RING_RADIUS
+        if (drawer.begin(
+                "controls",
+                0f, screenHeight / 2f,
+                screenWidth / 2f, screenHeight / 2f,
+                background = 0x0,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
+
+            // draw ring
+            drawCircle(drawer,
+                centerX, centerY,
+                RING_RADIUS,
+                RING_COLOR,
+                10f)
+
+            // draw movement point
+            if (!touchingControls) { // on the center
+                drawCircle(drawer,
+                    centerX, centerY,
+                    INNER_RADIUS,
+                    INNER_COLOR,
+                    0f)
+                left = false
+                right = false
+                forward = false
+                backwards = false
+            } else {
+                directionVec.set(controlsX - centerX, controlsY - centerY)
+                if (directionVec.length() > RING_RADIUS) {
+                    directionVec.normalize()
+                    directionVec.scale(RING_RADIUS)
+                }
+
+                val angle = degrees(atan2(directionVec.y, directionVec.x)).toInt() / (360/8)
+                left = angle == 3 || angle == -3
+                right = angle == 0
+                forward = angle == -1 || angle == -2
+                backwards = angle == 1 || angle == 2
+                drawCircle(drawer,
+                    centerX + directionVec.x, centerY + directionVec.y,
+                    INNER_RADIUS,
+                    INNER_COLOR,
+                    0f)
+                val str = when {
+                    left -> "left"
+                    right -> "right"
+                    forward -> "forward"
+                    backwards -> "backwards"
+                    else -> "none"
+                }
+            }
+        }
+        drawer.end()
+    }
+
+    private fun drawCircle(
+        drawer: UIDrawer,
+        x: Float, y: Float,
+        radius: Float,
+        color: Int,
+        thickness: Float = 0f) {
+        if (thickness != 0f) {
+            drawer.strokeCircle(x - radius, y - radius, radius*2f, thickness, color)
+        } else {
+            drawer.fillCircle(x - radius, y - radius, radius*2f, color)
+        }
+    }
+
+    override fun checkForward(): Boolean = forward
+
+    override fun checkBackwards(): Boolean = backwards
+
+    override fun checkRight(): Boolean = right
+
+    override fun checkLeft(): Boolean = left
+
+    override fun checkFire(): Boolean = false
+
+    override fun getCameraRotationX(): Float = 0f
+
+    override fun getCameraRotationY(): Float = 0f
+
+}
