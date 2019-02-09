@@ -12,6 +12,8 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.vecmath.Color4f
@@ -262,43 +264,33 @@ class WorldRenderer(
             field = value % 360f
         }
 
-    /** Returns true when assets have been preloaded. */
-    val assetsLoaded: Boolean get() = assetsLoadedAtomic.get()
-    private val assetsLoadedAtomic = AtomicBoolean(false)
+    private var assetsLoaded: Boolean = false
 
-    /** Preload renderer assets asynchronously.  */
-    fun preloadAssets(threads: Int = 3, onLoad: (() -> Unit)? = null) {
-        // maybe use some abstraction instead of raw threads?
+    /** Preload renderer assets */
+    fun preloadAssets() {
+        // This will need a rewrite without a JVM.
         if (!assetsLoaded) {
-            val results = ConcurrentHashMap<String, GLTextureWrapper>()
-            val filesQueue = ConcurrentLinkedQueue<String>()
-            Textures.FILES.values.forEach { filesQueue.offer(it) }
-            repeat(threads) { threadId ->
-                thread(name = "assetLoader-$threadId") {
-                    if (threadId == 0) {
-                        vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
-                        fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
+            assetsLoaded = true
+            val executor = Executors.newCachedThreadPool()
+            val result = ConcurrentHashMap<Int, GLTextureWrapper>()
+            for ((txtId, file) in Textures.FILES) {
+                executor.submit {
+                    val data = assetResolver.getAsByteArray(file)
+                    val wrapper = ByteArrayInputStream(data).use { stream ->
+                        GLTextureWrapper.createFromPNGInputStream(stream)
                     }
-
-                    while (true) {
-                        val fileName = filesQueue.poll() ?: break
-                        val data = assetResolver.getAsByteArray(fileName)
-                        val inputStream = ByteArrayInputStream(data)
-                        results[fileName] = GLTextureWrapper.createFromPNGInputStream(inputStream)
-                        println("Load fileName $fileName")
-                    }
-                    // Nothing more to load. The first to reach this
-                    // updates the flag and reports to the callback.
-                    if (!assetsLoadedAtomic.getAndSet(true)) {
-                        for ((fileName, wrapper) in results) {
-                            val id = Textures.FILES.entries.first { it.value == fileName }.key
-                            textures[id] = wrapper
-                            println("Register texture ID: $id for file: $fileName")
-                        }
-                        onLoad?.invoke()
-                    }
+                    println("register $txtId for $file!")
+                    result[txtId] = wrapper
                 }
             }
+            executor.submit {
+                vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
+                fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
+            }
+            executor.shutdown() // wait till all tasks end
+            executor.awaitTermination(1, TimeUnit.MINUTES)
+            result.toMap(textures)
+            println("textuers: $textures")
         }
     }
 

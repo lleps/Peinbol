@@ -62,7 +62,7 @@ class MainActivity : Activity() {
         val host = "35.198.14.75"
         val port = 8080
         val name = "lleps"
-        println("Connecting to $host:$port as '$name'...")
+        Log.i(TAG, "Connecting to $host:$port as '$name'...")
         network = Network.createClientAndConnect(host, port) { error ->
             if (error != null) {
                 Log.e(TAG, "Can't connect to $host:$port", error)
@@ -75,8 +75,7 @@ class MainActivity : Activity() {
         network.onServerMessage { msg -> handleNetworkMessage(msg) }
 
         // Preload assets, in parallel as well
-
-        println("Loading renderer assets...")
+        Log.i(TAG, "Dispatch renderer asset loading...")
         physics = BulletPhysicsNativeImpl().apply { init() }
         assetResolver = AndroidAssetResolver(assets)
         worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics)
@@ -135,25 +134,17 @@ class MainActivity : Activity() {
         }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            // TODO: most things should be initialized in the activity main, except for the openGL/AL context.
-            println("Setup audio...")
             audioManager = AudioManager()
             audioManager.init()
-            println("ok.")
 
-            println("Initializing renderer... (waiting till resource load)")
-            while (!worldRenderer.assetsLoaded || !network.connected) Thread.sleep(50)
             worldRenderer.init()
 
-            println("Initialize UI and load assets..")
             uiRenderer = NuklearUIRenderer(assetResolver)
             uiRenderer.preloadAssets()
             uiRenderer.init()
 
-            println("Initialize window...")
             window = Window(assetResolver) // TODO remove this. is totally useless
 
-            println("register UI elements...")
             uiRenderer.registerUIElement(ClientStatsUI::class.java, ClientStatsUI(window, physics, network))
             uiRenderer.registerUIElement(HealthUI::class.java, HealthUI())
             uiRenderer.registerUIElement(AndroidMovementUI::class.java, AndroidMovementUI())
@@ -163,8 +154,6 @@ class MainActivity : Activity() {
             })
             uiRenderer.registerUIElement(ChatUI::class.java, ChatUI())
             uiRenderer.registerUIElement(PlayersInfoUI::class.java, PlayersInfoUI())
-
-            println("Everything initialized!")
         }
     }
 
