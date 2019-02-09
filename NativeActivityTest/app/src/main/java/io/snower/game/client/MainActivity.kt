@@ -50,12 +50,9 @@ class MainActivity : Activity() {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             getWindow().decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    // Set the content to appear under the system bars so that the
-                    // content doesn't resize when the system bars hide and show.
                     or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    // Hide the nav bar and status bar
                     or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_FULLSCREEN)
         }
@@ -118,7 +115,7 @@ class MainActivity : Activity() {
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
             if (frameReportCounter++ % 10 == 0) {
-                Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
+                //Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
             }
         }
 
@@ -262,6 +259,9 @@ class MainActivity : Activity() {
 
     /** Send input state if appropiate, and update camera pos */
     private fun update(window: Window, mouseDX: Float, mouseDY: Float, delta: Int) {
+        worldRenderer.cameraRotY -= controls.getCameraRotationX()
+        worldRenderer.cameraRotX -= controls.getCameraRotationY()
+
         val inputState = Messages.InputState(
             forward = controls.checkForward(),
             backwards = controls.checkBackwards(),
@@ -275,7 +275,9 @@ class MainActivity : Activity() {
             cameraY = worldRenderer.cameraRotY
         )
 
-        // Camera update
+        controls.readDone()
+
+        // Camera pos update
         val playerBox = boxes[myBoxId]
         if (playerBox != null) {
             doPlayerMovement(playerBox, inputState, delta)
@@ -283,8 +285,6 @@ class MainActivity : Activity() {
             worldRenderer.cameraPosY = playerBox.position.y + 0.8f
             worldRenderer.cameraPosZ = playerBox.position.z
         }
-        worldRenderer.cameraRotX -= mouseDY * 0.4f
-        worldRenderer.cameraRotY -= mouseDX * 0.4f
 
         // Drugs test
         if (onDrugs) {
