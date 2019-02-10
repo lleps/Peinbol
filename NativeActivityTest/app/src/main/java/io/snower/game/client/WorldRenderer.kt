@@ -227,7 +227,7 @@ class WorldRenderer(
     private val boxes = mutableSetOf<Box>()
 
     // Assets. Kept in memory for performance.
-    private val textures = mutableMapOf<Int, GLTextureWrapper>()
+    private val textures = ConcurrentHashMap<Int, GLTextureWrapper>()
     private var vertexShaderSource = ""
     private var fragmentShaderSource = ""
 
@@ -267,35 +267,28 @@ class WorldRenderer(
             field = value % 360f
         }
 
+    private val textureLoaderExecutor = Executors.newCachedThreadPool()
     private var assetsLoaded: Boolean = false
 
     /** Preload renderer assets */
     fun preloadAssets() {
-        // May be lazy. When ends, should push to some queue the wrapper, so it gets copied to openGL on next draw.
-        // This will need a rewrite without a JVM.
         if (!assetsLoaded) {
             assetsLoaded = true
-            val executor = Executors.newCachedThreadPool()
-            val result = ConcurrentHashMap<Int, GLTextureWrapper>()
+
+            vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
+            fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
+
+            // load textures lazily
             for ((txtId, file) in Textures.FILES) {
-                executor.submit {
+                textureLoaderExecutor.submit {
                     val data = assetResolver.getAsByteArray(file)
                     val wrapper = ByteArrayInputStream(data).use { stream ->
                         GLTextureWrapper.createFromPNGInputStream(stream)
                     }
-                    println("register $txtId for $file!")
-                    result[txtId] = wrapper
+                    println("Load texture ID $txtId from $file")
+                    textures[txtId] = wrapper
                 }
             }
-            executor.submit {
-                // those needs to be blocking
-                vertexShaderSource = assetResolver.getAsString("vertexShader.glsl")
-                fragmentShaderSource = assetResolver.getAsString("fragmentShader.glsl")
-            }
-            executor.shutdown() // wait till all tasks end
-            executor.awaitTermination(1, TimeUnit.MINUTES)
-            result.toMap(textures)
-            println("textuers: $textures")
         }
     }
 
@@ -303,7 +296,6 @@ class WorldRenderer(
 
     fun init() {
         if (!glInited) {
-            textures.values.forEach { it.load(gl) }
             val vertexShader = loadShaderFromSource(vertexShaderSource, gl.GL_VERTEX_SHADER)
             val fragmentShader = loadShaderFromSource(fragmentShaderSource, gl.GL_FRAGMENT_SHADER)
             program = createAndLinkProgram(vertexShader, fragmentShader, arrayOf("a_Position", "a_Color", "a_Normal", "a_TexCoordinate"))
@@ -400,7 +392,14 @@ class WorldRenderer(
             physicsInterface.getBoxOpenGLMatrix(box, modelMatrix)
             matrixOps.scale(modelMatrix, box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
 
-            textures[box.textureId]?.bind(gl)
+            val txt = textures[box.textureId]
+            if (txt == null) {
+                // not loaded or invalid
+                gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
+            } else {
+                if (!txt.loadedInGL) txt.load(gl)
+                txt.bind(gl)
+            }
             gl.glUniform1i(textureUniformHandle, 0)
             drawCube(box)
         }

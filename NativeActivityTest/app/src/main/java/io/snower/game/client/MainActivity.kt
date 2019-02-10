@@ -115,7 +115,7 @@ class MainActivity : Activity() {
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
             if (frameReportCounter++ % 10 == 0) {
-                //Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
+                Log.i(TAG, "Physics time: $physicsTime, world draw time: $worldDrawTime, ui draw time: $uiDrawTime")
             }
         }
 

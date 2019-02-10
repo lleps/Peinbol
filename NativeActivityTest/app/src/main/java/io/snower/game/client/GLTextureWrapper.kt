@@ -28,7 +28,9 @@ class GLTextureWrapper(val buffer: ByteBuffer, val width: Int, val height: Int) 
         }
     }
 
-    private var loadedInGL = false
+    var loadedInGL = false
+        private set
+
     private var id: Int = 0
 
     fun load(
@@ -39,7 +41,6 @@ class GLTextureWrapper(val buffer: ByteBuffer, val width: Int, val height: Int) 
         if (loadedInGL) return
         loadedInGL = true
         val target = gl.GL_TEXTURE_2D
-        gl.glEnable(target)
         id = gl.glGenTextures()
         bind(gl)
         gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
