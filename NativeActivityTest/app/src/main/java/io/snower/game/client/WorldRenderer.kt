@@ -59,7 +59,10 @@ class WorldRenderer(
     private var width: Int = 0
     private var height: Int = 0
 
-
+    var fov: Float = 45f
+        set(value) {
+            field = value.coerceIn(5f, 175f)
+        }
 
     /** Encapsulate data necessary to speed up rendering of boxes */
     private class BoxRenderer(private val box: Box) {
@@ -365,7 +368,7 @@ class WorldRenderer(
         gl.glActiveTexture(gl.GL_TEXTURE0)
 
         matrixOps.identity(projectionMatrix)
-        matrixOps.perspective(projectionMatrix, 45f, width.toFloat()/height.toFloat(), 0.2f, 1000f)
+        matrixOps.perspective(projectionMatrix, fov, width.toFloat()/height.toFloat(), 0.2f, 1000f)
 
         matrixOps.identity(viewMatrix)
         matrixOps.lookAt(viewMatrix,

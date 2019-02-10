@@ -78,7 +78,7 @@ void renderStandardExample(int width, int height) {
 static nk_color java2nuklear(jint col) {
     nk_uint rgba = static_cast<nk_uint>(col);
     // for some reason nuklear / openGL displays it as ARGB instead of RGBA
-    return nk_rgba_u32((rgba << (3*8)) | (rgba >> 8));
+    return nk_rgba_u32(rgba);
 }
 
 extern "C"

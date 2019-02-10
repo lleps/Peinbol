@@ -7,14 +7,17 @@ import kotlin.math.atan2
 
 
 /** Implements controls using a touch interface. */
-class AndroidControls : Controls, UIDrawable {
+class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDrawable {
     companion object {
-        private const val RING_RADIUS = 90f
-        private const val INNER_RADIUS = 20f
-        private const val RING_COLOR = 0xFF8080FF.toInt()
-        private const val INNER_COLOR = 0x5FF050FF
+        private const val RING_RADIUS = 110f
+        private const val INNER_RADIUS = 30f
+        private const val RING_COLOR = 0xD32F2FFF.toInt()
+        private const val INNER_COLOR = 0xC62828FF.toInt()
         private const val X_PAD = 100f //
         private const val Y_PAD = 100f // padding from bottom-left
+        private const val SENSITIVITY_DEFAULT = 0.1f
+        private const val SENSITIVITY_AIMING = 0.02f
+        private const val RING_THICKNESS = 5f
     }
 
     private var forward = false
@@ -36,36 +39,59 @@ class AndroidControls : Controls, UIDrawable {
     private var deltaRotX = 0f
     private var deltaRotY = 0f
 
+    private var sensitivity = SENSITIVITY_DEFAULT
+
     // called from the UI thread
     fun handleTouchEvent(event: MotionEvent) {
         processEvent(event)
     }
 
+    private var aiming = false
+    private var waitingUntilExitAimZone = false
+
     private fun pointerUpdate(id: Int, action: Int, x: Float, y: Float) {
         when (action) {
             MotionEvent.ACTION_DOWN -> {
-                if (x > width / 2) { // rotation
+                if (x < width / 2) { // rotation
+                    if (controlsFingerId == -1) { // movement
+                        controlsFingerId = id
+                        controlsX = x
+                        controlsY = y
+                    }
+                } else {
                     if (rotFingerId == -1) {
                         rotFingerId = id
                         lastRotX = x
                         lastRotY = y
                         deltaRotX = 0f
                         deltaRotY = 0f
-                    }
-                } else {
-                    if (controlsFingerId == -1) { // movement
-                        controlsFingerId = id
-                        controlsX = x
-                        controlsY = y
+                        if (x > width / 4 * 3 && y > height / 3 * 2) {
+                            aiming = true
+                            waitingUntilExitAimZone = true
+                            sensitivity = SENSITIVITY_AIMING
+                            println("aiming!")
+                        } else {
+                            sensitivity = SENSITIVITY_DEFAULT
+                        }
                     }
                 }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (id == rotFingerId) {
-                    deltaRotX += (x - lastRotX) / 10f
-                    deltaRotY += (y - lastRotY) / 10f
-                    lastRotX = x
-                    lastRotY = y
+                    // should move only if not in the aim zone
+                    // if distance(point) > aimRadius
+                    if ((x > width / 4 * 3 && y > height / 3 * 2) && waitingUntilExitAimZone) {
+                        //waitingUntilExitAimZone = false
+                        lastRotX = x
+                        lastRotY = y
+                        return
+                    } else {
+                        waitingUntilExitAimZone = false
+                        deltaRotX += (x - lastRotX) * sensitivity
+                        deltaRotY += (y - lastRotY) * sensitivity
+                        lastRotX = x
+                        lastRotY = y
+                    }
                 } else if (id == controlsFingerId) {
                     controlsX = x
                     controlsY = y
@@ -74,9 +100,12 @@ class AndroidControls : Controls, UIDrawable {
             MotionEvent.ACTION_UP -> {
                 if (id == rotFingerId) {
                     rotFingerId = -1
+                    aiming = false
+                    waitingUntilExitAimZone = false
                 } else if (id == controlsFingerId) {
                     controlsFingerId = -1
                 }
+
             }
         }
     }
@@ -94,8 +123,8 @@ class AndroidControls : Controls, UIDrawable {
                 val pointerCount = e.pointerCount
                 for (i in 0 until pointerCount) {
                     if (e.historySize > 0) {
-                        if (e.getX(i).toInt() != e.getHistoricalX(i, 0).toInt() ||
-                            e.getY(i).toInt() != e.getHistoricalY(i, 0).toInt()
+                        if (e.getX(i) != e.getHistoricalX(i, 0) ||
+                            e.getY(i) != e.getHistoricalY(i, 0)
                         ) {
                             pointerId = e.getPointerId(i)
                             pointerUpdate(pointerId, MotionEvent.ACTION_MOVE, e.getX(i), e.getY(i))
@@ -113,6 +142,11 @@ class AndroidControls : Controls, UIDrawable {
         width = screenWidth.toInt()
         height = screenHeight.toInt()
         updateAndDrawMovement(drawer, screenWidth, screenHeight)
+        if (aiming) {
+            worldRenderer.fov = (worldRenderer.fov + -6f).coerceAtLeast(10f)
+        } else {
+            worldRenderer.fov = (worldRenderer.fov + 6f).coerceAtMost(50f)
+        }
     }
 
     // here should reset rotation delta
@@ -140,7 +174,7 @@ class AndroidControls : Controls, UIDrawable {
                 centerX, centerY,
                 RING_RADIUS,
                 RING_COLOR,
-                10f)
+                RING_THICKNESS)
 
             // draw movement point
             if (controlsFingerId == -1) { // on the center

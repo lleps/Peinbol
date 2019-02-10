@@ -14,7 +14,7 @@ class ClientStatsUI(
         private const val BLACK_TRANSPARENT = 0x00000064
     }
 
-    var visible = true
+    var visible = false
 
     override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return

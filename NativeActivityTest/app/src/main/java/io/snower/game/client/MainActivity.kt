@@ -86,7 +86,7 @@ class MainActivity : Activity() {
         worldRenderer.preloadAssets()
 
         // Create controls instance
-        controls = AndroidControls()
+        controls = AndroidControls(worldRenderer)
 
         // Ensure GLES 2 support
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
