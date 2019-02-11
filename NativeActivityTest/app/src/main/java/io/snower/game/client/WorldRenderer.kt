@@ -1,28 +1,16 @@
 package io.snower.game.client
 
 import android.opengl.Matrix
-import android.util.Log
 import io.snower.game.common.*
-import org.joml.Planed
-import org.joml.Planef
-import org.joml.Vector4f
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import javax.vecmath.Color4f
+import java.util.concurrent.*
 import javax.vecmath.Vector3f
-import kotlin.concurrent.thread
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
-import kotlin.system.measureTimeMillis
 
 /**
  * Renders the world and preloadAssets the assets that are necessary for
@@ -65,9 +53,13 @@ class WorldRenderer(
         }
 
     /** Encapsulate data necessary to speed up rendering of boxes */
-    private class BoxRenderer(private val box: Box) {
+    private inner class BoxRenderer(private val box: Box) {
         val colorBuffer: FloatBuffer = BufferUtils.createFloatBuffer(6*6*4)
         val textureCoordsBuffer: FloatBuffer = BufferUtils.createFloatBuffer(6*6*2)
+
+        val modelMatrix = FloatArray(16)
+        val mvMatrix = FloatArray(16)
+        val mvpMatrix = FloatArray(16)
 
         init {
             val (r,g,b,a) = box.theColor
@@ -81,6 +73,16 @@ class WorldRenderer(
             repeat(6*6*2) { i ->
                 textureCoordsBuffer.put(TXT_BASE_COORDS[i] * m)
             }
+        }
+
+        fun setupMatrices() {
+            // This should prepare the object for drawing
+            // Does matrix multiplications and that kind of optimizations
+            physicsInterface.getBoxOpenGLMatrix(box, modelMatrix)
+            matrixOps.scale(modelMatrix, box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
+
+            matrixOps.multiplyMM(mvMatrix, viewMatrix, modelMatrix)
+            matrixOps.multiplyMM(mvpMatrix, projectionMatrix, mvMatrix)
         }
     }
 
@@ -206,8 +208,6 @@ class WorldRenderer(
     private val matrixOps = AndroidMatrixOps()
     private val viewMatrix = FloatArray(16)
     private val projectionMatrix = FloatArray(16)
-    private val modelMatrix = FloatArray(16)
-    private val mvpMatrix = FloatArray(16)
     private val lightModelMatrix = FloatArray(16)
 
     private val lightPosInModelSpace = floatArrayOf(0f, 0f, 0f, 1f)
@@ -341,6 +341,11 @@ class WorldRenderer(
         }
     }
 
+    // this pool makes all rendering thread-independent logic, like preparing matrices and frustum culling
+    private val rendererExecutor = Executors.newFixedThreadPool(4)
+    private val rendererExecutorList = ArrayList<Callable<Unit>>(4)
+    private val threadBoxes = Array<ArrayList<BoxRenderer>>(4) { ArrayList(500) }
+
     fun draw() {
         gl.glUseProgram(program)
         mvpMatrixHandle = gl.glGetUniformLocation(program, "u_MVPMatrix")
@@ -387,11 +392,29 @@ class WorldRenderer(
         matrixOps.multiplyMV(lightPosInEyeSpace, viewMatrix, lightPosInWorldSpace)
         gl.glUniform3f(lightPosHandle, lightPosInEyeSpace[0], lightPosInEyeSpace[1], lightPosInEyeSpace[2])
 
+        // Do matrix operations in parallel
+        rendererExecutorList.clear()
+        val boxesCount = boxes.size
+        val boxesPerThread = boxesCount / 4
+        val iterator = boxes.iterator()
+        repeat(4) { threadId ->
+            val boxesForThatThread = threadBoxes[threadId]
+            boxesForThatThread.clear()
+            var threadBoxCounter = 0
+            while (iterator.hasNext() && threadBoxCounter++ < boxesPerThread) {
+                boxesForThatThread.add(iterator.next().rendererHandle as BoxRenderer)
+            }
+
+            rendererExecutorList.add(Callable {
+                for (boxRenderer in boxesForThatThread) {
+                    boxRenderer.setupMatrices()
+                }
+            })
+        }
+        rendererExecutor.invokeAll(rendererExecutorList)
+
         // Draw all boxes
         for (box in boxes) {
-            physicsInterface.getBoxOpenGLMatrix(box, modelMatrix)
-            matrixOps.scale(modelMatrix, box.size.x / 2f, box.size.y / 2f, box.size.z / 2f)
-
             val txt = textures[box.textureId]
             if (txt == null) {
                 // not loaded or invalid
@@ -404,7 +427,6 @@ class WorldRenderer(
             drawCube(box)
         }
     }
-
 
     private fun drawCube(box: Box) {
         val renderer = box.rendererHandle as BoxRenderer
@@ -428,12 +450,8 @@ class WorldRenderer(
         renderer.textureCoordsBuffer.position(0)
         gl.glVertexAttribPointer(textureCoordinateHandle, TEXTURE_COORDS_DATA_SIZE, gl.GL_FLOAT, false, 0, renderer.textureCoordsBuffer)
         gl.glEnableVertexAttribArray(textureCoordinateHandle)
-
-        matrixOps.multiplyMM(mvpMatrix, viewMatrix, modelMatrix)
-        gl.glUniformMatrix4fv(mvMatrixHandle, false, mvpMatrix)
-
-        matrixOps.multiplyMM(mvpMatrix, projectionMatrix, mvpMatrix)
-        gl.glUniformMatrix4fv(mvpMatrixHandle, false, mvpMatrix)
+        gl.glUniformMatrix4fv(mvMatrixHandle, false, renderer.mvMatrix)
+        gl.glUniformMatrix4fv(mvpMatrixHandle, false, renderer.mvpMatrix)
 
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, 36)
     }

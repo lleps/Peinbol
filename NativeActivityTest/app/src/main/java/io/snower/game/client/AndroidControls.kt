@@ -9,10 +9,10 @@ import kotlin.math.atan2
 /** Implements controls using a touch interface. */
 class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDrawable {
     companion object {
-        private const val RING_RADIUS = 110f
-        private const val INNER_RADIUS = 30f
-        private const val RING_COLOR = 0xD32F2FFF.toInt()
-        private const val INNER_COLOR = 0xC62828FF.toInt()
+        private const val RING_RADIUS = 100f
+        private const val INNER_RADIUS = 25f
+        private const val RING_COLOR = 0xFF121212.toInt()
+        private const val INNER_COLOR = 0xD32F2FFF.toInt()
         private const val X_PAD = 100f //
         private const val Y_PAD = 100f // padding from bottom-left
         private const val SENSITIVITY_DEFAULT = 0.1f
