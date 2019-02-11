@@ -82,7 +82,7 @@ class MainActivity : Activity() {
         Log.i(TAG, "Loading assets...")
         physics = BulletPhysicsNativeImpl().apply { init() }
         assetResolver = AndroidAssetResolver(assets)
-        worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics)
+        worldRenderer = WorldRenderer(assetResolver, GLESImpl(), physics, AndroidMatrixOps())
         worldRenderer.preloadAssets()
 
         // Create controls instance
