@@ -1,28 +1,29 @@
 package io.snower.game.client
 
 import io.snower.game.common.*
+import java.util.*
 
 /** Implements physics with bullet 2.x using JNI mostly. */
 class BulletPhysicsNativeImpl : PhysicsInterface {
 
     // Native physics functions.
-    external fun createWorld(): Long
-    external fun deleteWorld(handle: Long)
-    external fun createBodyInWorld(
+    private external fun createWorld(): Long
+    private external fun deleteWorld(handle: Long)
+    private external fun createBodyInWorld(
         worldHandle: Long,
         mass: Float,
         x: Float, y: Float, z: Float,
         sx: Float, sy: Float, sz: Float
     ): Long
-    external fun deleteBodyFromWorld(worldHandle: Long, bodyHandle: Long)
-    external fun simulate(worldHandle: Long, time: Float)
-    external fun getBodyOpenGLMatrix(bodyHandle: Long, dst: FloatArray)
-    external fun getBodyHandleData(bodyHandle: Long, dst: FloatArray) // to update box data with simulation data
-    external fun updateBodyWorldTransform(
+    private external fun deleteBodyFromWorld(worldHandle: Long, bodyHandle: Long)
+    private external fun simulate(worldHandle: Long, time: Float)
+    private external fun getBodyOpenGLMatrix(bodyHandle: Long, dst: FloatArray)
+    private external fun getBodyHandleData(bodyHandle: Long, dst: FloatArray) // to update box data with simulation data
+    private external fun updateBodyWorldTransform(
         bodyHandle: Long,
         x: Float, y: Float, z: Float,
         q1: Float, q2: Float, q3: Float, q4: Float)
-    external fun updateBodyVelocity(
+    private external fun updateBodyVelocity(
         bodyHandle: Long,
         linearX: Float, linearY: Float, linearZ: Float,
         angularX: Float, angularY: Float, angularZ: Float)
@@ -91,7 +92,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
         simulate(worldHandle, delta.toFloat()/1000f)
 
         // Poll simulation results back to java
-        /*for (box in boxes) {
+        for (box in boxes) {
             if (box.mass == 0f) continue
 
             val handle = box.physicsHandle as Long
@@ -103,9 +104,9 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
             box.position.z = bodyDataDst[POSITION_OFFSET + 2]
 
             // update quaternion
-            box.position.x = bodyDataDst[QUATERNION_OFFSET + 0]
-            box.position.y = bodyDataDst[QUATERNION_OFFSET + 1]
-            box.position.z = bodyDataDst[QUATERNION_OFFSET + 2]
+            box.rotation.x = bodyDataDst[QUATERNION_OFFSET + 0]
+            box.rotation.y = bodyDataDst[QUATERNION_OFFSET + 1]
+            box.rotation.z = bodyDataDst[QUATERNION_OFFSET + 2]
             box.rotation.w = bodyDataDst[QUATERNION_OFFSET + 3]
 
             // update velocity
@@ -117,7 +118,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
             box.angularVelocity.x = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 0]
             box.angularVelocity.y = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 1]
             box.angularVelocity.z = bodyDataDst[ANGULAR_VELOCITY_OFFSET + 2]
-        }*/
+        }
 
         lastSimulationMillis = (System.currentTimeMillis() - start).toFloat()
     }

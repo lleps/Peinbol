@@ -27,7 +27,7 @@ class Box(
         val forceCopy = force.get()
         forceCopy.scale(1f / mass)
         linearVelocity.add(forceCopy)
-        shouldCommitTransformChanges = true
+        shouldCommitMomentumChanges = true
     }
 
     var position: Vector3f = position
@@ -44,13 +44,13 @@ class Box(
 
     var linearVelocity: Vector3f = linearVelocity
         set(value) {
-            shouldCommitTransformChanges = true
+            shouldCommitMomentumChanges = true
             field = value.get()
         }
 
     var angularVelocity: Vector3f = angularVelocity
         set(value) {
-            shouldCommitTransformChanges = true
+            shouldCommitMomentumChanges = true
             field = value.get()
         }
 
