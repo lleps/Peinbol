@@ -12,8 +12,6 @@ import kotlin.math.sin
 import kotlin.math.tan
 import android.opengl.GLES20
 
-
-
 /**
  * Renders the world and preloadAssets the assets that are necessary for
  * that, such as textures and shaders.
@@ -67,7 +65,6 @@ class WorldRenderer(
                 GLES20.GL_ARRAY_BUFFER, mCubePositions.capacity() * BYTES_PER_FLOAT,
                 mCubePositions, GLES20.GL_STATIC_DRAW
             )
-            println("create buffer: $bufVertex")
 
             // Normals buffer
             bufNormals = arr[3]
@@ -76,8 +73,6 @@ class WorldRenderer(
                 GLES20.GL_ARRAY_BUFFER, mCubeNormals.capacity() * BYTES_PER_FLOAT,
                 mCubeNormals, GLES20.GL_STATIC_DRAW
             )
-            println("create buffer: $bufNormals")
-
 
             // Textures buffer
             bufTextCoords = arr[2]
@@ -87,8 +82,6 @@ class WorldRenderer(
                 GLES20.GL_ARRAY_BUFFER, textureCoordsBuffer.capacity() * BYTES_PER_FLOAT,
                 textureCoordsBuffer, GLES20.GL_STATIC_DRAW
             )
-            println("create buffer: $bufTextCoords")
-
 
             // Colors buffer
             bufColors = arr[1]
@@ -98,7 +91,6 @@ class WorldRenderer(
                 GLES20.GL_ARRAY_BUFFER, colorBuffer.capacity() * BYTES_PER_FLOAT,
                 colorBuffer, GLES20.GL_STATIC_DRAW
             )
-            println("create buffer: $bufColors")
 
         }
 
@@ -109,6 +101,12 @@ class WorldRenderer(
             matrixOps.multiplyMM(mvMatrix, viewMatrix, modelMatrix)
             matrixOps.multiplyMM(mvpMatrix, projectionMatrix, mvMatrix)
         }
+
+        // Drawing should be grouped in:
+        // Boxes.
+        // - common boxes (those who have no color and txtMultiplier 1)
+        // - strange boxes (here should pass the custom color/etc)
+        // Spheres.
 
         // Draw in the current gl
         fun draw(gl: GLInterface) {
@@ -379,7 +377,7 @@ class WorldRenderer(
         val boxesCount = boxes.size
         val boxesPerThread = boxesCount / 4
         val iterator = boxes.iterator()
-        repeat(4) { threadId ->
+        /*repeat(4) { threadId ->
             val boxesForThatThread = threadBoxes[threadId]
             boxesForThatThread.clear()
             var threadBoxCounter = 0
@@ -392,7 +390,7 @@ class WorldRenderer(
                     boxRenderer.preDraw()
                 }
             })
-        }
+        }*/
         rendererExecutor.invokeAll(rendererExecutorList)
 
         // Draw
@@ -411,6 +409,7 @@ class WorldRenderer(
             // the problem with this is that draw can't be made at least somewhat globally.
             // some things may be done only once for every box.
             gl.glUniform1i(textureUniformHandle, 0)
+            renderer.preDraw()
             renderer.draw(gl)
             //drawCube(box)
         }
