@@ -192,7 +192,7 @@ nk_gles_render(enum nk_anti_aliasing AA, int max_vertex_buffer, int max_element_
     scale.y = (float)display_height/(float)height;
 
     /* setup global state */
-    glViewport(0,0,display_width,display_height);
+    //glViewport(0,0,display_width,display_height);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -104,6 +104,17 @@ class GLESImpl : GLInterface {
         GLES20.glVertexAttribPointer(index, size, type, normalized, stride, ptr)
     }
 
+    override fun glVertexAttribPointerOffset(
+        index: Int,
+        size: Int,
+        type: Int,
+        normalized: Boolean,
+        stride: Int,
+        offset: Int
+    ) {
+        GLES20.glVertexAttribPointer(index, size, type, normalized, stride, offset)
+    }
+
     override fun glEnableVertexAttribArray(handle: Int) {
         GLES20.glEnableVertexAttribArray(handle)
     }

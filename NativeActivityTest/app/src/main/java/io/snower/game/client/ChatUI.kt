@@ -15,7 +15,7 @@ class ChatUI : UIDrawable {
         if (messages.size > 20) messages = messages.takeLast(20)
     }
 
-    var visible = true
+    var visible = false
 
     override fun draw(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
         if (!visible) return

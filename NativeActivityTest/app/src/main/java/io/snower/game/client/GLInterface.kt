@@ -70,4 +70,5 @@ interface GLInterface {
     fun glGenerateMipmap(target: Int)
     fun glBindTexture(target: Int, id: Int)
     fun glDeleteTexture(id: Int)
+    fun glVertexAttribPointerOffset(index: Int, size: Int, type: Int, normalized: Boolean, stride: Int, offset: Int)
 }
