@@ -267,7 +267,7 @@ class MainActivity : Activity() {
             backwards = controls.checkBackwards(),
             left = controls.checkLeft(),
             right = controls.checkRight(),
-            fire = false,
+            fire = controls.checkFire(),
             fire2 = false,
             jump = false,
             walk = false,

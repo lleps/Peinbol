@@ -2,6 +2,7 @@ package io.snower.game.client
 
 import android.view.MotionEvent
 import io.snower.game.common.degrees
+import io.snower.game.common.distance2D
 import javax.vecmath.Vector2f
 import kotlin.math.atan2
 
@@ -18,6 +19,13 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         private const val SENSITIVITY_DEFAULT = 0.1f
         private const val SENSITIVITY_AIMING = 0.02f
         private const val RING_THICKNESS = 5f
+        private const val SHOT_QUICK_X_PAD = 50f
+        private const val SHOT_QUICK_Y_PAD = 50f
+        private const val SHOT_QUICK_RADIUS = 65f
+        private const val SHOT_QUICK_COLOR = 0x99999999.toInt()
+        private const val SHOT_HARD_X_PAD = SHOT_QUICK_X_PAD + SHOT_QUICK_RADIUS*2f + 50f
+        private const val SHOT_HARD_Y_PAD = 50f
+        private const val SHOT_HARD_RADIUS = 70f
     }
 
     private var forward = false
@@ -46,28 +54,43 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         processEvent(event)
     }
 
+    private var shoting = false
     private var aiming = false
     private var waitingUntilExitAimZone = false
+    private var shotingId = -1
 
     private fun pointerUpdate(id: Int, action: Int, x: Float, y: Float) {
         when (action) {
             MotionEvent.ACTION_DOWN -> {
-                if (x < width / 2) { // rotation
-                    if (controlsFingerId == -1) { // movement
-                        controlsFingerId = id
-                        controlsX = x
-                        controlsY = y
+                if (x < width / 2) { // movement
+                    // check shot
+                    val centerX = SHOT_QUICK_X_PAD + SHOT_QUICK_RADIUS
+                    val centerY = SHOT_QUICK_Y_PAD + SHOT_QUICK_RADIUS
+                    val vec1 = Vector2f(centerX, centerY)
+                    val vec2 = Vector2f(x, y)
+                    if (shotingId == -1 && vec1.distance2D(vec2) < SHOT_QUICK_RADIUS && aiming) {
+                        shoting = true
+                        shotingId = id
+                        println("shot!")
+                    } else {
+                        if (controlsFingerId == -1) { // movement
+                            controlsFingerId = id
+                            controlsX = x
+                            controlsY = y
+                        }
                     }
-                } else {
+                } else { // rotation
                     if (rotFingerId == -1) {
                         rotFingerId = id
                         lastRotX = x
                         lastRotY = y
                         deltaRotX = 0f
                         deltaRotY = 0f
-                        if (x > width / 4 * 3 && y > height / 3 * 2) {
+                        val vec1 = Vector2f(width - X_PAD - RING_RADIUS, height - Y_PAD - RING_RADIUS)
+                        val vec2 = Vector2f(x, y)
+                        if (vec1.distance2D(vec2) < RING_RADIUS) {
                             aiming = true
-                            waitingUntilExitAimZone = true
+                            waitingUntilExitAimZone = false
                             sensitivity = SENSITIVITY_AIMING
                             println("aiming!")
                         } else {
@@ -104,8 +127,10 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
                     waitingUntilExitAimZone = false
                 } else if (id == controlsFingerId) {
                     controlsFingerId = -1
+                } else if (id == shotingId) {
+                    shoting = false
+                    shotingId = -1
                 }
-
             }
         }
     }
@@ -142,6 +167,8 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         width = screenWidth.toInt()
         height = screenHeight.toInt()
         updateAndDrawMovement(drawer, screenWidth, screenHeight)
+        drawAiming(drawer, screenWidth, screenHeight)
+        drawShotButtons(drawer, screenWidth, screenHeight)
         if (aiming) {
             worldRenderer.fov = (worldRenderer.fov + -6f).coerceAtLeast(10f)
         } else {
@@ -209,6 +236,68 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         drawer.end()
     }
 
+    private fun drawShotButtons(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
+        val centerX = SHOT_QUICK_X_PAD + SHOT_QUICK_RADIUS
+        val centerY = SHOT_QUICK_Y_PAD + SHOT_QUICK_RADIUS
+        if (drawer.begin(
+                "shot",
+                0f, 0f,
+                screenWidth / 2f, screenHeight / 2f,
+                background = 0x0,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
+
+            // draw ring
+            if (aiming) {
+                drawCircle(drawer,
+                    centerX, centerY,
+                    SHOT_QUICK_RADIUS,
+                    SHOT_QUICK_COLOR)
+            }
+        }
+        drawer.end()
+    }
+
+    private fun drawAiming(drawer: UIDrawer, screenWidth: Float, screenHeight: Float) {
+        val centerX = screenWidth - X_PAD - RING_RADIUS
+        val centerY = screenHeight - Y_PAD - RING_RADIUS
+        if (drawer.begin(
+                "aiming",
+                screenWidth / 2f, screenHeight / 2f,
+                screenWidth / 2f, screenHeight / 2f,
+                background = 0x0,
+                flags = drawer.WINDOW_NO_SCROLLBAR)) {
+
+            // draw ring
+            drawCircle(drawer,
+                centerX, centerY,
+                RING_RADIUS,
+                RING_COLOR,
+                RING_THICKNESS)
+
+            // draw aiming control
+            if (!aiming) {
+                drawCircle(drawer,
+                    centerX, centerY,
+                    INNER_RADIUS,
+                    INNER_COLOR,
+                    0f)
+            } else {
+                directionVec.set(lastRotX - centerX, lastRotY - centerY)
+                if (directionVec.length() > RING_RADIUS) {
+                    directionVec.normalize()
+                    directionVec.scale(RING_RADIUS)
+                }
+
+                drawCircle(drawer,
+                    centerX + directionVec.x, centerY + directionVec.y,
+                    INNER_RADIUS,
+                    INNER_COLOR,
+                    0f)
+            }
+        }
+        drawer.end()
+    }
+
     private fun drawCircle(
         drawer: UIDrawer,
         x: Float, y: Float,
@@ -230,7 +319,7 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
 
     override fun checkLeft(): Boolean = left
 
-    override fun checkFire(): Boolean = false
+    override fun checkFire(): Boolean = shoting
 
     override fun getCameraRotationX(): Float = deltaRotX
 

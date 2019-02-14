@@ -4,6 +4,7 @@ import org.joml.Matrix4f
 import java.util.*
 import javax.vecmath.Tuple3f
 import javax.vecmath.Tuple4f
+import javax.vecmath.Vector2f
 import javax.vecmath.Vector3f
 import kotlin.math.sqrt
 
@@ -59,6 +60,12 @@ inline fun Vector3f.withOps(block: Vector3f.() -> Unit): Vector3f {
     val ret = this.get()
     ret.block()
     return ret
+}
+
+fun Vector2f.distance2D(vector: Vector2f): Float {
+    val dx = vector.x - x
+    val dy = vector.y - y
+    return sqrt(dx * dx + dy * dy)
 }
 
 fun Vector3f.distance3D(vector: Vector3f): Float {
