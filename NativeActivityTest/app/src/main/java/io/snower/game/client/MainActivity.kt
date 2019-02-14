@@ -107,11 +107,15 @@ class MainActivity : Activity() {
 
     inner class RendererWrapper : GLSurfaceView.Renderer {
         private var frameReportCounter = 0
+        private var lastFrameMillis = System.currentTimeMillis()
 
         override fun onDrawFrame(gl: GL10?) {
+            val now = System.currentTimeMillis()
+            val delta = (now - lastFrameMillis).toInt().coerceAtMost(1000)
+            lastFrameMillis = now
             network.pollMessages()
-            update(window, 0f, 0f, 16)
-            val physicsTime = measureTimeMillis { physics.simulate(16, true, myBoxId) }
+            update(window, 0f, 0f, delta)
+            val physicsTime = measureTimeMillis { physics.simulate(delta, true, myBoxId) }
             val worldDrawTime = measureTimeMillis { worldRenderer.draw() }
             val uiDrawTime = measureTimeMillis { uiRenderer.draw() }
             if (frameReportCounter++ % 10 == 0) {

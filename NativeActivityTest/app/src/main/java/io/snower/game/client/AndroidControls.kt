@@ -54,7 +54,9 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         processEvent(event)
     }
 
+    @Volatile
     private var shoting = false
+    @Volatile
     private var aiming = false
     private var waitingUntilExitAimZone = false
     private var shotingId = -1
@@ -68,7 +70,7 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
                     val centerY = SHOT_QUICK_Y_PAD + SHOT_QUICK_RADIUS
                     val vec1 = Vector2f(centerX, centerY)
                     val vec2 = Vector2f(x, y)
-                    if (shotingId == -1 && vec1.distance2D(vec2) < SHOT_QUICK_RADIUS && aiming) {
+                    if (shotingId == -1 && vec1.distance2D(vec2) < SHOT_QUICK_RADIUS) {
                         shoting = true
                         shotingId = id
                         println("shot!")
@@ -247,12 +249,12 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
                 flags = drawer.WINDOW_NO_SCROLLBAR)) {
 
             // draw ring
-            if (aiming) {
+            //if (aiming) {
                 drawCircle(drawer,
                     centerX, centerY,
                     SHOT_QUICK_RADIUS,
                     SHOT_QUICK_COLOR)
-            }
+            //}
         }
         drawer.end()
     }

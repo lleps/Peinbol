@@ -11,6 +11,7 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
     private external fun deleteWorld(handle: Long)
     private external fun createBodyInWorld(
         worldHandle: Long,
+        type: Int, // TYPE_* in companion
         mass: Float,
         x: Float, y: Float, z: Float,
         sx: Float, sy: Float, sz: Float
@@ -47,7 +48,9 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
         if (box !in boxes) {
             val (x, y, z) = box.position
             val (sx, sy, sz) = box.size
-            val bodyHandle = createBodyInWorld(worldHandle, box.mass, x, y, z, sx, sy, sz)
+            // TODO: make this properly from common, to server-client
+            val type = if (box.isSphere) TYPE_BULLET else if (box.isCharacter) TYPE_CHARACTER else TYPE_BOX
+            val bodyHandle = createBodyInWorld(worldHandle, type, box.mass, x, y, z, sx, sy, sz)
             box.physicsHandle = bodyHandle
             boxes += box
         }
@@ -133,5 +136,9 @@ class BulletPhysicsNativeImpl : PhysicsInterface {
         private const val LINEAR_VELOCITY_OFFSET = 7
         private const val ANGULAR_VELOCITY_OFFSET = 10
         private const val BODY_DATA_SIZE = 13
+
+        private const val TYPE_BOX = 0
+        private const val TYPE_CHARACTER = 1
+        private const val TYPE_BULLET = 2
     }
 }

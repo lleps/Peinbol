@@ -7,7 +7,7 @@
 extern "C" {
 JNIEXPORT jlong JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_createWorld(JNIEnv * env, jobject obj);
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_deleteWorld(JNIEnv * env, jobject obj, jlong handle);
-JNIEXPORT jlong JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_createBodyInWorld(JNIEnv * env, jobject obj, jlong worldHandle, jfloat mass, jfloat x, jfloat y, jfloat z, jfloat sx, jfloat sy, jfloat sz);
+JNIEXPORT jlong JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_createBodyInWorld(JNIEnv * env, jobject obj, jlong worldHandle, jint type, jfloat mass, jfloat x, jfloat y, jfloat z, jfloat sx, jfloat sy, jfloat sz);
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_deleteBodyFromWorld(JNIEnv * env, jobject obj, jlong worldHandle, jlong bodyHandle);
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_simulate(JNIEnv * env, jobject obj, jlong worldHandle, jfloat step);
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_getBodyOpenGLMatrix(JNIEnv * env, jobject obj, jlong bodyHandle, jfloatArray dst);
@@ -15,18 +15,6 @@ JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_getBod
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_updateBodyWorldTransform(JNIEnv * env, jobject obj, jlong bodyHandle, jfloat x, jfloat y, jfloat z, jfloat q1, jfloat q2, jfloat q3, jfloat q4);
 JNIEXPORT void JNICALL Java_io_snower_game_client_BulletPhysicsNativeImpl_updateBodyVelocity(JNIEnv * env, jobject obj, jlong bodyHandle, jfloat lX, jfloat lY, jfloat lZ, jfloat aX, jfloat aY, jfloat aZ);
 };
-
-/*
-JNIEXPORT jlong JNICALL Java_io_snower_game_client_PhysicsImpl_createBoxHandle(
-        JNIEnv * env,
-        jobject obj,
-        jfloat x,
-        jfloat y,
-        jfloat z) {
-    auto* state = new btDefaultMotionState();
-    auto* body = new btRigidBody(1.0f, state, new btBoxShape(btVector3(1.0f, 1.0f, 1.0f)));
-    return (jlong)body;
-}*/
 
 JNIEXPORT jlong JNICALL
 Java_io_snower_game_client_BulletPhysicsNativeImpl_createWorld
@@ -57,17 +45,30 @@ Java_io_snower_game_client_BulletPhysicsNativeImpl_deleteWorld
 JNIEXPORT jlong JNICALL
 Java_io_snower_game_client_BulletPhysicsNativeImpl_createBodyInWorld
 (JNIEnv * env, jobject obj, jlong worldHandle,
-        jfloat mass,
+        jint type, jfloat mass,
         jfloat x, jfloat y, jfloat z,
         jfloat sx, jfloat sy, jfloat sz) {
 
+    int TYPE_BOX = 0;
+    int TYPE_CHARACTER = 1;
+    int TYPE_BULLET = 2;
+
     // create shape and calculate inertia
     btVector3 pos(x, y, z);
-    btVector3 halfExtents(sx, sy, sz);
-    halfExtents /= btScalar(2.0f);
-    auto* shape = new btBoxShape(halfExtents);
+    btCollisionShape* shape = nullptr;
+    if (type == TYPE_BULLET) {
+        shape = new btSphereShape(sx);
+    } else {
+        btVector3 halfExtents(sx, sy, sz);
+        halfExtents /= btScalar(2.0f);
+        shape = new btBoxShape(halfExtents);
+    }
+
+    // calculate inertia, only for non-static objects
     btVector3 inertia;
-    shape->calculateLocalInertia(mass, inertia);
+    if (mass != 0.0f) {
+        shape->calculateLocalInertia(mass, inertia);
+    }
 
     // create world transform
     btTransform transform;
@@ -78,6 +79,16 @@ Java_io_snower_game_client_BulletPhysicsNativeImpl_createBodyInWorld
     auto* motionState = new btDefaultMotionState(transform);
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, shape, inertia);
     auto* body = new btRigidBody(rbInfo);
+
+    // set ccd for bullets
+    if (type == TYPE_BULLET) {
+        body->setCcdMotionThreshold(0.2f);
+    }
+
+    // set friction for static objects
+    if (type == TYPE_BOX && mass == 0.0f) {
+        //body->setFriction(0.95f);
+    }
 
     // add to world
     auto* world = (btDiscreteDynamicsWorld*) worldHandle;
