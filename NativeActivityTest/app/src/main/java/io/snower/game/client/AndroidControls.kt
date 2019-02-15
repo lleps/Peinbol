@@ -224,11 +224,41 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
                     directionVec.scale(RING_RADIUS)
                 }
 
-                val angle = degrees(atan2(directionVec.y, directionVec.x)).toInt() / (360/8)
-                left = angle == 3 || angle == -3
-                right = angle == 0
-                forward = angle == -1 || angle == -2
-                backwards = angle == 1 || angle == 2
+                val angle = degrees(atan2(directionVec.y, directionVec.x)).toInt() / (360/12)
+                right = false
+                left = false
+                forward = false
+                backwards = false
+                when (angle) {
+                    -1 -> {
+                        right = true
+                        forward = true
+                    }
+                    0 -> {
+                        right = true
+                    }
+                    -2, -3 -> {
+                        forward = true
+                    }
+                    -4 -> {
+                        left = true
+                        forward = true
+                    }
+                    -5, 5 -> {
+                        left = true
+                    }
+                    4 -> {
+                        left = true
+                        backwards = true
+                    }
+                    3,2 -> {
+                        backwards = true
+                    }
+                    1 -> {
+                        backwards = true
+                        right = true
+                    }
+                }
                 drawCircle(drawer,
                     centerX + directionVec.x, centerY + directionVec.y,
                     INNER_RADIUS,
