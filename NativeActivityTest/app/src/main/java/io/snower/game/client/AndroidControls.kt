@@ -16,8 +16,8 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         private const val INNER_COLOR = 0xD32F2FFF.toInt()
         private const val X_PAD = 100f //
         private const val Y_PAD = 100f // padding from bottom-left
-        private const val SENSITIVITY_DEFAULT = 0.1f
-        private const val SENSITIVITY_AIMING = 0.02f
+        private const val SENSITIVITY_DEFAULT = 0.2f
+        private const val SENSITIVITY_AIMING = 0.04f
         private const val RING_THICKNESS = 5f
         private const val SHOT_QUICK_X_PAD = 50f
         private const val SHOT_QUICK_Y_PAD = 50f
@@ -180,9 +180,10 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
 
     // here should reset rotation delta
     override fun readDone() {
-        deltaRotX *= 0.7f
-        deltaRotY *= 0.7f
+        deltaRotX = 0f
+        deltaRotY = 0f
     }
+
 
     // Update the movement panel
 
