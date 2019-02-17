@@ -44,8 +44,8 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
     private var rotFingerId = -1
     private var lastRotX = 0f
     private var lastRotY = 0f
-    private var deltaRotX = 0f
-    private var deltaRotY = 0f
+    @Volatile private var deltaRotX = 0f
+    @Volatile private var deltaRotY = 0f
 
     private var sensitivity = SENSITIVITY_DEFAULT
 
@@ -54,10 +54,8 @@ class AndroidControls(private val worldRenderer: WorldRenderer) : Controls, UIDr
         processEvent(event)
     }
 
-    @Volatile
-    private var shoting = false
-    @Volatile
-    private var aiming = false
+    @Volatile private var shoting = false
+    @Volatile private var aiming = false
     private var waitingUntilExitAimZone = false
     private var shotingId = -1
 
