@@ -12,16 +12,58 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #define NK_GLES2_IMPLEMENTATION
+
+float
+nk_sina(float x)
+{
+    float sin = 0.f;
+
+    if (x < -3.14159265f)
+        x += 6.28318531f;
+    else
+    if (x >  3.14159265f)
+        x -= 6.28318531f;
+
+    if (x < 0)
+    {
+        sin = 1.27323954f * x + .405284735f * x * x;
+
+        if (sin < 0)
+            sin = .225f * (sin *-sin - sin) + sin;
+        else
+            sin = .225f * (sin * sin - sin) + sin;
+    }
+    else
+    {
+        sin = 1.27323954f * x - 0.405284735f * x * x;
+
+        if (sin < 0)
+            sin = .225f * (sin *-sin - sin) + sin;
+        else
+            sin = .225f * (sin * sin - sin) + sin;
+    }
+    return sin;
+}
+
+float
+nk_cosa(float x)
+{
+    return nk_sina(x + 1.57079632f);
+}
+
+#define NK_SIN nk_sina
+#define NK_COS nk_cosa
+
 #include "nuklear.h"
 #include "nk_gles2_impl.h"
-#define MAX_VERTEX_MEMORY 512 * 1024
-#define MAX_ELEMENT_MEMORY 128 * 1024
+#define MAX_VERTEX_MEMORY (512 * 128)
+#define MAX_ELEMENT_MEMORY (128 * 128)
 
 #define  LOG_TAG    "snower-jni"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
-struct nk_context* ctx = NULL;
+struct nk_context* ctx = nullptr;
 
 void renderStandardExample(int width, int height) {
     /* GUI */
@@ -76,7 +118,7 @@ void renderStandardExample(int width, int height) {
 }
 
 static nk_color java2nuklear(jint col) {
-    nk_uint rgba = static_cast<nk_uint>(col);
+    auto rgba = static_cast<nk_uint>(col);
     // for some reason nuklear / openGL displays it as ARGB instead of RGBA
     return nk_rgba_u32(rgba);
 }
@@ -84,28 +126,25 @@ static nk_color java2nuklear(jint col) {
 extern "C"
 JNIEXPORT jlong JNICALL
 Java_io_snower_game_client_NuklearUIRenderer_createNuklearContext(JNIEnv * env, jobject obj, jobject fontPointer) {
-    if (ctx != NULL) {
+    if (ctx != nullptr) {
         LOGI("Context already initialized. Return it.");
     } else {
         ctx = nk_gles_init();// isn't it deleted when going out of scope?
         struct nk_font_atlas *atlas;
         nk_gles_font_stash_begin(&atlas);
-        jbyte* fontPtr = (jbyte*) env->GetDirectBufferAddress(fontPointer);
+        auto* fontPtr = (jbyte*) env->GetDirectBufferAddress(fontPointer);
+        nk_font* font = nullptr;
         if (fontPtr != nullptr) {
             jlong size = env->GetDirectBufferCapacity(fontPointer);
-            //nk_font_atlas_add_from_memory(atlas, fontPtr, static_cast<nk_size>(size), 14, nullptr);
+            font = nk_font_atlas_add_from_memory(atlas, fontPtr, static_cast<nk_size>(size), 14, nullptr);
             LOGI("Passed a font pointer to createNuklearContext");
         } else {
             LOGI("Use default font in createNuklearContext");
         }
-        // TODO: add a better font
-        /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
-        /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16, 0);*/
-        /*struct nk_font *future = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13, 0);*/
-        /*struct nk_font *clean = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12, 0);*/
-        /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
-        /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
         nk_gles_font_stash_end();
+        if (font != nullptr) {
+            nk_style_set_font(ctx, &font->handle);
+        }
     }
     return (long)ctx;
 }
@@ -122,7 +161,7 @@ Java_io_snower_game_client_NuklearUIRenderer_drawNuklearOutput(JNIEnv * env, job
     //LOGI("drawNuklearOutput()\n");
     // for now, just draw standard code like in the example.
     //renderStandardExample(width, height);
-    nk_gles_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY, width, height);
+    nk_gles_render(NK_ANTI_ALIASING_OFF, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY, width, height);
 }
 
 extern "C"

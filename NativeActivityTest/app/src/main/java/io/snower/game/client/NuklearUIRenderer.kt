@@ -39,7 +39,7 @@ class NuklearUIRenderer(private val assetResolver: AssetResolver) : UIRenderer, 
     override fun preloadAssets() {
         if (assetsLoaded) return
         // dumb copy here...
-        val fontData = assetResolver.getAsByteArray("demo/FiraSans.ttf")
+        val fontData = assetResolver.getAsByteArray("demo/KidsZone.ttf")
         val buffer = BufferUtils.createByteBuffer(fontData.size)
         buffer.put(fontData)
         buffer.position(0)

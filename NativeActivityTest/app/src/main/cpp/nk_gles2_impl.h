@@ -246,7 +246,7 @@ nk_gles_render(enum nk_anti_aliasing AA, int max_vertex_buffer, int max_element_
             config.vertex_size = sizeof(struct nk_gles_vertex);
             config.vertex_alignment = NK_ALIGNOF(struct nk_gles_vertex);
             config.null = dev->null;
-            config.circle_segment_count = 22;
+            config.circle_segment_count = 44;
             config.curve_segment_count = 22;
             config.arc_segment_count = 22;
             config.global_alpha = 1.0f;
