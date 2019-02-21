@@ -2,8 +2,8 @@ package io.snower.game.client
 
 class HealthUI : UIDrawable {
     companion object {
-        private const val BAR_WIDTH = 400f
-        private const val BAR_HEIGHT = 35f
+        private const val BAR_WIDTH = 450f
+        private const val BAR_HEIGHT = 50f
         private const val HEALTH_COLOR = 0xD32F2FFF.toInt()
         private const val HEALTH_BACKGROUND = 0x00000064
     }

@@ -28,7 +28,7 @@ class ChatUI : UIDrawable {
         val height = messages.size * 24f
         if (drawer.begin("Chat", x, y, width, height, background = BLACK_TRANSPARENT, flags = drawer.WINDOW_NO_SCROLLBAR)) {
             for (msg in messages) {
-                drawer.layoutRowDynamic(20f, 1)
+                drawer.layoutRowDynamic(50f, 1)
                 drawer.label(msg.msg, drawer.TEXT_RIGHT)
             }
         }

@@ -136,7 +136,7 @@ Java_io_snower_game_client_NuklearUIRenderer_createNuklearContext(JNIEnv * env, 
         nk_font* font = nullptr;
         if (fontPtr != nullptr) {
             jlong size = env->GetDirectBufferCapacity(fontPointer);
-            font = nk_font_atlas_add_from_memory(atlas, fontPtr, static_cast<nk_size>(size), 14, nullptr);
+            font = nk_font_atlas_add_from_memory(atlas, fontPtr, static_cast<nk_size>(size), 20, nullptr);
             LOGI("Passed a font pointer to createNuklearContext");
         } else {
             LOGI("Use default font in createNuklearContext");
@@ -161,7 +161,7 @@ Java_io_snower_game_client_NuklearUIRenderer_drawNuklearOutput(JNIEnv * env, job
     //LOGI("drawNuklearOutput()\n");
     // for now, just draw standard code like in the example.
     //renderStandardExample(width, height);
-    nk_gles_render(NK_ANTI_ALIASING_OFF, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY, width, height);
+    nk_gles_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY, width, height);
 }
 
 extern "C"
@@ -227,6 +227,11 @@ JNIEXPORT void JNICALL
 Java_io_snower_game_client_NuklearUIRenderer_progress
 (JNIEnv* env, jobject obj, jint current, jint max, jint color, jint background) {
     auto prog = (size_t)current;
+    ctx->style.progress.normal.data.color = nk_rgba_u32(0x99010101);
     ctx->style.progress.cursor_normal.data.color = java2nuklear(color);
+    ctx->style.progress.border = 5.0f;
+    ctx->style.progress.rounding = 20.0f;
+    ctx->style.progress.cursor_border = 15.0f;
+    ctx->style.progress.cursor_rounding = 15.0f;
     nk_progress(ctx, &prog, (nk_size)(max), nk_false);
 }
